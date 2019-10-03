@@ -1,0 +1,51 @@
+Package: bayescount
+Title: Statistical Analyses and Sample Size Calculations for Over-dispersed Count Data
+Version: 2.0.0-1
+Date:  2019-10-03
+Authors@R: 
+    c(person(given = "Matthew",
+           family = "Denwood",
+           role = c("aut", "cre"),
+           email = "md@sund.ku.dk"),
+    person(given = "Bob",
+           family = "Wheeler",
+           role = c("cph"),
+           comment="Copyright holder of the temporary code in /src/dists.*")
+    )
+Description:
+    A set of functions and interactive Shiny apps to allow analysis of
+    over-dispersed count data such as that associated with egg reduction rate
+    (ERR) and faecal egg count reduction test (FECRT) studies in parasitology.
+    Functions and apps are also provided to assist in sample size calculations
+    for future studies.  A working installation of JAGS is required for
+    MCMC-based methods (see <http://mcmc-jags.sourceforge.net>).
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 6.1.1
+Depends:
+    R (>= 3.3.0)
+Imports:
+    parallel,
+    stats,
+    utils,
+	runjags,
+	Rcpp (>= 1.0.0)
+Suggests:
+	rjags,
+	runjags,
+	shiny,
+	shinythemes,
+	dplyr,
+	tibble,
+	tidyr,
+	ggplot2,
+    testthat (>= 2.1.0),
+    knitr,
+    rmarkdown,
+    spelling
+LinkingTo: Rcpp
+VignetteBuilder: knitr
+URL: https://github.com/ku-awdc/bayescount
+Language: en-GB
