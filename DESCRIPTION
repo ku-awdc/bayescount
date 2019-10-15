@@ -1,7 +1,7 @@
 Package: bayescount
 Title: Statistical Analyses and Sample Size Calculations for Over-dispersed Count Data
-Version: 2.0.0-1
-Date:  2019-10-03
+Version: 1.0.0-10
+Date:  2019-10-15
 Authors@R: 
     c(person(given = "Matthew",
            family = "Denwood",
@@ -10,7 +10,11 @@ Authors@R:
     person(given = "Bob",
            family = "Wheeler",
            role = c("cph"),
-           comment="Copyright holder of the temporary code in /src/dists.*")
+           comment="Copyright holder of the code in /src/dists.*"),
+    person(given = "Richard",
+           family = "Brent",
+           role = c("cph"),
+           comment="Original copyright holder of the code in /src/optimize.cc")
     )
 Description:
     A set of functions and interactive Shiny apps to allow analysis of
@@ -27,14 +31,10 @@ RoxygenNote: 6.1.1
 Depends:
     R (>= 3.3.0)
 Imports:
-    parallel,
     stats,
     utils,
-	runjags,
 	Rcpp (>= 1.0.0)
 Suggests:
-	rjags,
-	runjags,
 	shiny,
 	shinythemes,
 	dplyr,
