@@ -1,0 +1,114 @@
+---
+title: "htfsim"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{htfsim}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library("bayescount")
+
+
+iters <- 10^3
+by <- 0.01
+
+library('tidyverse')
+
+parameters <- tribble(~Parameter, ~Ascaris, ~Hookworm, ~Trichuris,
+
+"Target", 0.95, 0.7, 0.5,
+"Delta", 0.05, 0.05, 0.05,
+"mu", 1255, 74, 162,
+"k1", 0.08, 0.84, 0.92,
+"k2", 0.08*0.64, 0.58, 0.53,
+"cor", 0.67, 0.65, 0.68
+
+)
+
+simpars <- t(parameters[,-1])
+dimnames(simpars)[[2]] <- parameters[[1]]
+simpars <- cbind(data.frame(Parasite=dimnames(simpars)[[1]]), simpars)
+rownames(simpars) <- NULL
+
+simpars <- simpars %>%
+	mutate(ti=Target, ta=Target-Delta, ko1=k1, ko2=k2, kd=k2/k1) %>%
+	mutate(kc = sqrt(ko1*ko2) / cor, ku1 = ((kc+1)*ko1)/(kc-ko1), ku2 = ((kc+1)*ko2)/(kc-ko2)) %>%
+	full_join(expand.grid(Parasite=unique(simpars$Parasite), N=c(20,91,1000), stringsAsFactors=FALSE), by='Parasite') %>%
+	filter(N == 20) %>%
+	mutate(iters=iters, by=by) %>%
+	arrange(desc(N))  # So mclapply starts with the big ones
+
+
+
+resfun <- function(i){
+	t <- Sys.time()	
+	
+	tsp <- simpars[i,]
+	args <- as.list((tsp %>% select(N, mu, k1, k2, kc, ta, ti)))
+	args <- c(args, list(rvs=seq(0,1,by=tsp$by), iters=tsp$iters, approx=1, priors=c(0,0), useml=TRUE, plot=FALSE))
+
+	res <- do.call('powersim_paired', args)
+	
+	tt <- as.numeric(difftime(Sys.time(), t), units='mins')
+	
+	typres <- res %>%
+		mutate(Efficacy = 1-Reduction) %>%
+		group_by(Method, Efficacy, Classification) %>%
+		summarise(Number = n()) %>%
+		group_by(Method, Efficacy) %>%
+		mutate(Proportion = Number / sum(Number)) %>%
+		ungroup() %>%
+		mutate(Parasite=simpars$Parasite[i], N=simpars$N[i]) %>%
+		select(Parasite, N, everything())
+	
+	sumres <- res %>%
+		mutate(Parasite=simpars$Parasite[i], N=simpars$N[i]) %>%
+		mutate(Efficacy = 1-Reduction) %>%
+		mutate(Class = gsub("[[:alpha:][:punct:]]","",Classification), Class = as.numeric(ifelse(Class=="",2,Class)), InfTest = Class %in% c('1','3'), NonInfTest = Class %in% c('3','4')) %>%
+		select(Parasite, N, Method, Efficacy, InfTest, NonInfTest) %>%
+		gather(TestType, TestResult, -Parasite, -N, -Method, -Efficacy) %>%
+		group_by(Parasite, N, Method, Efficacy, TestType) %>% 
+		summarise(Probability=sum(TestResult)/n())
+	
+	return(list(sumres=sumres, typres=typres, tt=tt))
+}
+
+library('parallel')
+simres <- mclapply(1:nrow(simpars), resfun, mc.preschedule = FALSE, mc.cores = ((getOption("mc.cores", 2L) / 2) - 1))
+
+typres=sumres <- vector('list', length=nrow(simpars))
+att <- numeric(nrow(simpars))
+for(i in 1:nrow(simpars)){
+	typres[[i]] <- simres[[i]]$typres
+	sumres[[i]] <- simres[[i]]$sumres
+	att[i] <- simres[[i]]$tt
+}
+
+typres <- do.call('rbind', typres) %>%
+	left_join(simpars %>% select(Parasite, ti, ta, N), by=c('Parasite','N')) %>%
+	ungroup() %>%
+	mutate(N=factor(N))
+sumres <- do.call('rbind', sumres) %>%
+	left_join(simpars %>% select(Parasite, ti, ta, N), by=c('Parasite','N')) %>%
+	ungroup() %>%
+	mutate(N=factor(N))
+simpars$MinsTaken <- att
+
+
+cat("Total time taken:", sum(att), "mins\n")
+save(simpars, typres, sumres, file=paste0('simres_', iters, '_', by, '.Rdata'))
+
+if(any(typres$Classification%in%'error')){
+	stop(sum(typres$Classification%in%'error'), ' errors obtained')
+}
+
+```

@@ -37,6 +37,7 @@ Imports:
 Suggests:
 	shiny,
 	shinythemes,
+	rhandsontable,
 	dplyr,
 	tibble,
 	tidyr,

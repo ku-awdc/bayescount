@@ -67,7 +67,6 @@
 
 #include "Rcpp.h"
 
-// [[Rcpp::export]]
 double find_theta(const Rcpp::IntegerVector data, const double mu, const double ax, const double bx, const double tol)
 {
     /*  c is the squared inverse of the golden ratio */
