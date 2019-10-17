@@ -32,6 +32,7 @@ launch_shiny <- function(appname, ...){
 
 	}else if(appname == "data_analysis"){
 		pn <- "rhandsontable"
+		parasitology <- FALSE
 
 	}else if(appname == "framework"){
 		stop("not yet implemented")
@@ -46,7 +47,7 @@ launch_shiny <- function(appname, ...){
 	if(!all(sapply(c('shiny', 'shinythemes', pn), requireNamespace, quietly=TRUE))){
 		stop("Additional packages must be installed for the specified shiny app - you should run:", iptext(c('shiny','shinythemes'), pn), call. = FALSE)
 	}
-	
+		
 	shiny::runApp(appDir=file.path(ad, appname), ...)
 	
 }

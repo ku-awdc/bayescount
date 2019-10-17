@@ -188,7 +188,7 @@ Rcpp::String get_type_pv(const double eff, const double p1, const double p2, con
 }
 
 
-Rcpp::List analyse_fecrt(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
 {
 	using namespace Rcpp;
 
@@ -304,15 +304,13 @@ Rcpp::List analyse_fecrt(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2,
 
 	DataFrame output = DataFrame::create(Named("Method") = output_Method,
 		Named("LCI") = output_LCI, Named("UCI") = output_UCI,
-		Named("pI") = output_pI, Named("pA") = output_pA, Named("Classification") = output_Classification);
+		Named("pI") = output_pI, Named("pA") = output_pA, Named("Typology") = output_Classification);
 
-	List rv = List::create(Named("ObservedReduction") = NumericVector::create((1.0-obsred)*100.0), Named("Methods") = output);
-
-	return rv;
+	return output;
 }
 
 
-Rcpp::DataFrame fecrt_sim_unpaired(int iters, Rcpp::NumericVector red, int N_tx, int N_ctl, double mu, double k_tx, double k_ctl, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
+Rcpp::DataFrame efficacy_sample_size_unpaired(int iters, Rcpp::NumericVector red, int N_tx, int N_ctl, double mu, double k_tx, double k_ctl, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
 {
 
 	// Check that the thresholds have 2 columns and >0 rows:
@@ -479,7 +477,7 @@ Rcpp::DataFrame fecrt_sim_unpaired(int iters, Rcpp::NumericVector red, int N_tx,
 }
 
 
-Rcpp::DataFrame fecrt_sim_paired(int iters, Rcpp::NumericVector red, int N, double mu, double k_pre, double k_post, double k_c, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+Rcpp::DataFrame efficacy_sample_size_paired(int iters, Rcpp::NumericVector red, int N, double mu, double k_pre, double k_post, double k_c, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
 {
 
 	// Check that the thresholds have 2 columns and >0 rows:
@@ -680,8 +678,8 @@ RCPP_MODULE(rcpp_module){
 
 	using namespace Rcpp;
 
-	function("RCPP_analyse_fecrt", &analyse_fecrt);
-	function("RCPP_fecrt_sim_paired", &fecrt_sim_paired);
-	function("RCPP_fecrt_sim_unpaired", &fecrt_sim_unpaired);
+	function("RCPP_efficacy_analysis", &efficacy_analysis);
+	function("RCPP_efficacy_sample_size_paired", &efficacy_sample_size_paired);
+	function("RCPP_efficacy_sample_size_unpaired", &efficacy_sample_size_unpaired);
 
 }
