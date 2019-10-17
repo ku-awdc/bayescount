@@ -255,7 +255,7 @@ function(input, output, session) {
 		# TODO: make sure mean_rato works OK
 		mean_ratio <- 1
 		
-		results <- efficacy_analysis(predata, postdata, input$target/100, (input$target-input$nim)/100, paired, tail)
+		results <- efficacy_analysis(predata, postdata, paired, input$target/100, (input$target-input$nim)/100, tail)
 		
 		obsred <- round( (1 - (mean(postdata)/mean(predata))) * 100 , 1)
 		
@@ -286,84 +286,7 @@ function(input, output, session) {
 		if(paired){
 			resrow <- results[results$Method=="Binomial",]
 			outstring <- paste0(outstring, "<strong>Binomial method:</strong> &nbsp; &nbsp; ", pci(resrow$LCI, resrow$UCI, 0.2), "<br>&nbsp; &nbsp; ", colouredclass(resrow$Classification), "<br><br>")
-		}
-		
-		if(FALSE){
-		
-			# Track if we get a bad pvalue:
-			anerr <- FALSE
-			res <- list(p_1 = results$pA[results$Method=="BNB"], p_2 = results$pI[results$Method=="BNB"])
-		
-		
-		
-			# If the observed reduction is above the target then don't report the inf test:
-			if(obsred >= input$target){
-				inf <- FALSE
-				if(obsred == input$target){
-					outstring <- paste0(outstring, "<strong>Inferiority test:</strong> The observed FECR of ", obsred, "% is equal to the specified target efficacy<br>")
-				}else{
-					outstring <- paste0(outstring, "<strong>Inferiority test:</strong> The observed FECR of ", obsred, "% is greater than the specified target efficacy<br>")
-				}
-			}else{
-				pval <- res$p_2
-				if(is.na(pval) || pval==Inf || pval < -0.001 || pval > 1){
-					anerr <- TRUE
-					outstring <- paste0(outstring, "<strong>Inferiority test:</strong> The non-inferiority test result could not be calculated<br>")
-				}else{
-					pval <- round(pval, 3)			
-					pstr <- ifelse(pval < 0.001, "<0.001", paste0("=",pval))
-					if(pval <= input$pthresh){
-						outstring <- paste0(outstring, "<strong>Inferiority test:</strong> The observed FECR of ", obsred, "% is <span style='color:red;'>significantly inferior</span> to the target of ", input$target, "% (p", pstr, ")<br>")
-						inf <- TRUE
-					}else{
-						outstring <- paste0(outstring, "<strong>Inferiority test:</strong> The observed FECR of ", obsred, "% is not significantly inferior to the target of ", input$target, "% (p", pstr, ")<br>")
-						inf <- FALSE
-					}
-				}
-			}
-		
-			# If the observed reduction is below the margin then don't report the non-inf test:
-			if(obsred < (input$target-input$nim)){
-				ninf <- FALSE
-				outstring <- paste0(outstring, "<strong>Non-inferiority test:</strong> The observed FECR of ", obsred, "% is below the specified non-inferiority margin of the target efficacy<br>")
-			}else{
-				pval <- res$p_1
-				if(is.na(pval) || pval==Inf || pval < -0.001 || pval > 1){
-					anerr <- TRUE
-					outstring <- paste0(outstring, "<strong>Non-inferiority test:</strong> The non-inferiority test result could not be calculated<br>")
-				}else{
-					pval <- round(pval, 3)			
-					pstr <- ifelse(pval < 0.001, "<0.001", paste0("=",pval))
-					if(pval <= input$pthresh){
-						outstring <- paste0(outstring, "<strong>Non-inferiority test:</strong> The observed FECR of ", obsred, "% is <span style='color:blue;'>significantly non-inferior</span> to the target of ", input$target, "% with given margin (p", pstr, ")<br>")
-						ninf <- TRUE
-					}else{
-						outstring <- paste0(outstring, "<strong>Non-inferiority test:</strong> The observed FECR of ", obsred, "% is not significantly non-inferior to the target of ", input$target, "% with given margin (p", pstr, ")<br>")
-						ninf <- FALSE
-					}
-				}
-			}
-		
-			if(anerr){
-				class <- "The classification could not be determined"
-			}else{
-				if(inf && !ninf){
-					class <- "<span style='color:red;'>Reduced Efficacy</span>"
-				}else if(!inf && !ninf){
-					class <- "<span style='color:grey;'>Inconclusive</span>"
-				}else if(inf && ninf){
-					class <- "<span style='color:orange;'>Marginal Efficacy</span>"
-				}else if(!inf && ninf){
-					class <- "<span style='color:blue;'>Adequate Efficacy</span>"
-				}else{
-					class <- "ERROR DETERMINING CLASS"
-				}
-			}
-			outstring <- paste0(outstring, "<br><strong>Classification:</strong> ", class)
-		
-		}
-		
-		
+		}	
 		
 		rv$showresults <- 1
 		rv$summaries <- outstring
