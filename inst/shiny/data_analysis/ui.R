@@ -73,7 +73,11 @@ fluidPage(
 				hr(),
 				h4("Initialise the Data Inputs", style="text-align:center; "),			
 				hr(),
-				actionButton("reset", "Click to Initialise Data Inputs", width="100%"),
+				fluidRow(
+					column(6, align="center", offset = 3,
+						actionButton("reset", "Click to Initialise Data Inputs", icon = icon("paper-plane"), width='100%')
+					)
+				),
 				br(),
 				htmlOutput("initerrors", style="text-align:center; color:red; ", width="100%")
 			),
@@ -109,7 +113,11 @@ fluidPage(
 	        sliderInput('nim', 'Non-inferiority margin (% points)', min=0, max=25, value=4, step=0.1, width='100%'),
 			numericInput('pthresh', 'Threshold for significance (p)', min=0, max=0.2, value=0.025, step=0.025, width='100%'),
 			hr(),
-			actionButton("calculate", "Click to Calculate", width="100%"),
+			fluidRow(
+				column(6, align="center", offset = 3,
+					actionButton("calculate", "Click to Calculate", icon = icon("paper-plane"), width='100%')
+				)
+			),
 			htmlOutput("dataerrors", style="text-align:center; color:red; ", width="100%"),
 			conditionalPanel(
 				condition = "output.showresults == 1",

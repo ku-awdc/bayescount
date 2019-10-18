@@ -63,8 +63,8 @@ fluidPage(
 	hr(),
 	h4("Run the Monte Carlo simulation", style="text-align:center; "),
 	fluidRow(
-		column(12,
-			actionButton("simulate", "Click to run the simulation with these parameters [this takes up to a few seconds to process]", width="100%"),
+		column(6, align="center", offset = 3,
+			actionButton("simulate", "Click to run the simulation with these parameters [this takes up to a few seconds to process]", icon = icon("paper-plane"), width='100%')
 		)
 	),
 	hr(),

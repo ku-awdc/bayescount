@@ -20,7 +20,7 @@ fluidPage(
 				numericInput('N_1', 'Control sample size', min=1, value=10, step=1, width='100%')
 			),
 			column(6,
-				numericInput('N_2', 'Ttreatment sample size', min=1, value=10, step=1, width='100%')
+				numericInput('N_2', 'Treatment sample size', min=1, value=10, step=1, width='100%')
 			)
 		)
 	),
