@@ -14,17 +14,18 @@ A set of functions and interactive Shiny apps to allow analysis of
     for future studies.  A working installation of JAGS is required for
     MCMC-based methods (see <http://mcmc-jags.sourceforge.net>).
 
+A full description of the main functions in this package is given in the package vignette:
+vignette("bayescount", package="bayescount")
+
+For quick introductions to the two main functions of the package, see:
+
 \emph{Data analysis}
 
-See the analyse_fecrt function
+See ?efficacy_analysis
 
 \emph{Sample size calculations}
 
-TODO
-
-\emph{Publication results}
-
-Code is provided to replicate the simulation results in section 6 of "A hypothesis testing framework for the ratio of means of two negative binomial distributions" via the "htfsim" vignette:  vignette("htfsim", package="bayescount")
+See ?efficacy_frequencies
 }
 \references{
 M. J. Denwood, S. W. J. Reid, S. Love, M. K. Nielsen, L. Matthews, I. J. McKendrick, and G. T. Innocent. Comparison of three alternative methods for analysis of equine Faecal Egg Count Reduction Test data. Prev. Vet. Med. (2009), doi:10.1016/j.prevetmed.2009.11.009
@@ -38,7 +39,7 @@ Useful links:
 }
 
 
-\code{\link{launch_shiny}}, \code{\link{analyse_fecrt}}
+\code{\link{launch_shiny}}, \code{\link{efficacy_analysis}}, \code{\link{efficacy_frequencies}}
 }
 \author{
 \strong{Maintainer}: Matthew Denwood \email{md@sund.ku.dk}

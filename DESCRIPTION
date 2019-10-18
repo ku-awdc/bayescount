@@ -1,7 +1,7 @@
 Package: bayescount
 Title: Statistical Analyses and Sample Size Calculations for Over-dispersed Count Data
 Version: 1.0.0-10
-Date:  2019-10-15
+Date:  2019-10-18
 Authors@R: 
     c(person(given = "Matthew",
            family = "Denwood",
@@ -33,14 +33,13 @@ Depends:
 Imports:
     stats,
     utils,
+	dplyr,
+	rlang,
 	Rcpp (>= 1.0.0)
 Suggests:
 	shiny,
 	shinythemes,
 	rhandsontable,
-	dplyr,
-	tibble,
-	tidyr,
 	ggplot2,
     testthat (>= 2.1.0),
     knitr,

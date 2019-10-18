@@ -8,6 +8,8 @@ launch_shiny(appname, ...)
 }
 \arguments{
 \item{appname}{the name of an app to launch (see the details section)}
+
+\item{...}{further arguments to be passed to \code{\link[shiny]{runApp}}}
 }
 \description{
 This function provides a convinient way in which to launch one of the interactive shiny apps contained within this package, as detailed at http://www.fecrt.com/framework

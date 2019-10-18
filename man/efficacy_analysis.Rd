@@ -4,9 +4,10 @@
 \alias{efficacy_analysis}
 \title{efficacy_analysis}
 \usage{
-efficacy_analysis(data_1, data_2, H0_I, H0_A, paired, tail = 0.025,
-  bnb_priors = c(0, 0), use_delta = NA, beta_iters = 10^4,
-  binomial_priors = c(1, 1), binomial_cl_adj = 0.2)
+efficacy_analysis(data_1, data_2, paired, T_I = 0.99, T_A = 0.95,
+  S = c(1, 1), tail = 0.025, bnb_priors = c(0, 0), use_delta = NA,
+  beta_iters = 10^4, use_ml = TRUE, binomial_priors = c(1, 1),
+  binomial_cl_adj = 0.2)
 }
 \arguments{
 \item{data_1}{either the pre-treatment or control data - should either be an integer vector, or an integer matrix with replicates from the same individual in columns}
@@ -15,27 +16,37 @@ efficacy_analysis(data_1, data_2, H0_I, H0_A, paired, tail = 0.025,
 
 \item{paired}{logical flag for a paired or unpaired study design - if paired then length or nrow of data_1 must equal that of data_2}
 
+\item{T_I}{the threshold for inferioirty (target efficacy of the intervention)}
+
+\item{T_A}{the threshold for non-inferioirty (target efficacy of the intervention minus a non-inferioirty margin delta)}
+
+\item{S}{a length-2 numeric variable giving the counting sensitivity used for control/pre-treatment and treatment/post-treatment individuals}
+
 \item{tail}{the significance level to use for the classification, where 0.025 corresponds to 95\% CI and 0.05 corresponds to 90\% CI}
+
+\item{bnb_priors}{priors to use for the BNB method}
 
 \item{use_delta}{logical flag to use the delta method approximation for the BNB method (NA means to use it unless it fails)}
 
 \item{beta_iters}{number of iterations to use for the Monte Carlo approximation of the beta distribution transformation for the BNB method (when use_delta==FALSE)}
 
+\item{use_ml}{a logical flag controlling if maximum likelihood is used (rather than less accurate but faster methods) to estimate the over-dispersion parameter k}
+
 \item{binomial_priors}{the priors to use for the Binomial method}
 
 \item{binomial_cl_adj}{the adjustment in confidence level to use for the Binomial method relative to the others (the default corresponds to e.g. 99\% rather than 95\% CI) - where 0 > adj >= 1}
-
-\item{T_I}{the threshold for inferioirty (target efficacy of the intervention)}
-
-\item{T_A}{the threshold for non-inferioirty (target efficacy of the intervention minus a non-inferioirty margin delta)}
-
-\item{conjugate_priors}{priors to use for the BNB method}
+}
+\value{
+A data frame with columns Method, LCI, UCI, pI, pA, Typology, and Classification
 }
 \description{
 This function analyses a given count reduction dataset (e.g. egg reduction rate or faecal egg count reduction) using five different methods of analysis
 }
 \examples{
-data1 <- rnbinom(10, mu=20, size=1)
-data2 <- rnbinom(10, mu=2, size=0.75)
-efficacy_analysis(data1, data2, H0_I=0.95, H0_A=0.9, paired=FALSE)
+(data1 <- rnbinom(10, mu=20, size=1))
+(data2 <- rnbinom(10, mu=2, size=0.75))
+efficacy_analysis(data1, data2, paired=FALSE, T_I=0.95, T_A=0.9)
+}
+\seealso{
+\code{\link{bayescount}}, \code{\link{efficacy_frequencies}}
 }

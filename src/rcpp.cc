@@ -131,9 +131,9 @@ Rcpp::String get_type_ci(const double eff, const double lci, const double uci, c
 	Rcpp::String tp;
 
 	if(uci < ta){
-		tp = "1a";
+		tp = "1ab";
 	}else if(uci < ti && eff < ta){
-		tp = "1b";
+		tp = "1ab";
 	}else if(uci < ti && lci < ta){
 		tp = "1c";
 	}else if(lci < ta && uci >= ti && eff < ta){
@@ -147,9 +147,9 @@ Rcpp::String get_type_ci(const double eff, const double lci, const double uci, c
 	}else if(lci >= ta && uci >= ti && eff < ti){
 		tp = "4a";
 	}else if(lci >= ta && uci >= ti && eff >= ti){
-		tp = "4b";
+		tp = "4bc";
 	}else if(lci >= ti){
-		tp = "4c";
+		tp = "4bc";
 	}else{
 //		Rcpp::Rcout << eff << " - " << lci << " - " << uci << " - " << ta << " - " << ti << "\n";
 		tp = "error";
@@ -188,7 +188,7 @@ Rcpp::String get_type_pv(const double eff, const double p1, const double p2, con
 }
 
 
-Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, bool useml, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
 {
 	using namespace Rcpp;
 
@@ -238,7 +238,13 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 	    cov = cov / double(N_1 - 1L);
 	}
 
-	Rcpp::NumericVector ks = estimate_k_ml(data_1, mean_1, var_1, data_2, mean_2, var_2, cov, true);
+	Rcpp::NumericVector ks;
+	if(useml){
+		ks = estimate_k_ml(data_1, mean_1, var_1, data_2, mean_2, var_2, cov, true);
+	}else{
+		ks = estimate_k(mean_1, var_1, mean_2, var_2, cov, true);
+	}
+
 	// Test:
 	if(!R_finite(ks[0])){
 		stop("Non-finite k1 generated");
@@ -309,8 +315,96 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 	return output;
 }
 
+Rcpp::DataFrame typology_analysis(int sum_1, int sum_2, int N_1, int N_2, double k_1, double k_2, double cor, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+{
+	using namespace Rcpp;
 
-Rcpp::DataFrame efficacy_sample_size_unpaired(int iters, Rcpp::NumericVector red, int N_tx, int N_ctl, double mu, double k_tx, double k_ctl, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
+	const int nrows = paired ? 5L : 4L;
+	Rcpp::DoubleVector td( nrows, NA_REAL );
+	Rcpp::StringVector ts( nrows );
+	Rcpp::StringVector output_Method = clone(ts);
+	Rcpp::DoubleVector output_LCI = clone(td);
+	Rcpp::DoubleVector output_UCI = clone(td);
+	Rcpp::DoubleVector output_pI = clone(td);
+	Rcpp::DoubleVector output_pA = clone(td);
+	Rcpp::StringVector output_Classification = clone(ts);
+
+	// Note:  Rcpp allows conversion from long long but not to double array directly
+	double conjugate_priors_db[2] = { conjugate_priors[0], conjugate_priors[1] };
+	double dobson_priors_db[2] = { dobson_priors[0], dobson_priors[1] };
+	
+	const double mean_1 = static_cast<double>(sum_1) / static_cast<double>(N_1);
+	const double var_1 = mean_1 + (mean_1*mean_1) / k_1;
+	const double mean_2 = static_cast<double>(sum_2) / static_cast<double>(N_2);
+	const double var_2 = mean_2 + (mean_2*mean_2) / k_2;
+
+	const double obsred = mean_2 / mean_1;
+
+	double cov = 0.0;
+	if(paired)
+	{		
+	    cov = cor * std::sqrt(var_1) * std::sqrt(var_2);
+	}
+	Rcpp::NumericVector ks = estimate_k(mean_1, var_1, mean_2, var_2, cov, true);
+	
+	int row = 0L;
+	
+	output_Method[row] = "BNB";
+	bnb_pval(sum_1, N_1, ks[0L], mean_1, var_1, sum_2, N_2, ks[1L], mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
+	output_Classification[row] = get_type_pv(1.0-obsred, output_pA[row], output_pI[row], tail, H0_A, H0_I);
+	row++;
+
+	if(paired)
+	{
+		output_Method[row] = "Gamma";
+		levecke_p_ci(mean_1, mean_2, var_1, var_2, cov, N_1, tail, &output_LCI[row], &output_UCI[row]);
+		output_Classification[row] = (sum_2==0) ? "100%red" : get_type_ci(1.0-obsred, output_LCI[row], output_UCI[row], H0_A, H0_I);
+		row++;
+
+		output_Method[row] = "WAAVP";
+		waavp_p_ci(mean_1, mean_2, var_1, var_2, cov, N_1, tail, &output_LCI[row], &output_UCI[row]);
+		output_Classification[row] = (sum_2==0) ? "100%red" : get_type_ci(1.0-obsred, output_LCI[row], output_UCI[row], H0_A, H0_I);
+		row++;
+
+		output_Method[row] = "Asymptotic";
+		mle_p_ci(mean_1, mean_2, var_1, var_2, cov, N_1, tail, &output_LCI[row], &output_UCI[row]);
+		output_Classification[row] = (sum_2==0) ? "100%red" : get_type_ci(1.0-obsred, output_LCI[row], output_UCI[row], H0_A, H0_I);
+		row++;
+
+		output_Method[row] = "Binomial";
+		dobson_ci(sum_1, sum_2, dobson_cl[0], dobson_cl[1], dobson_priors_db, &output_LCI[row], &output_UCI[row]);
+		output_Classification[row] = (sum_2>sum_1) ? "<0%red" : get_type_ci(1.0-obsred, output_LCI[row], output_UCI[row], H0_A, H0_I);
+		row++;
+
+	}
+	else
+	{
+		output_Method[row] = "Gamma";
+		levecke_u_ci(mean_1, mean_2, var_1, var_2, N_1, N_2, tail, &output_LCI[row], &output_UCI[row]);
+		output_Classification[row] = (sum_2==0) ? "100%red" : get_type_ci(1.0-obsred, output_LCI[row], output_UCI[row], H0_A, H0_I);
+		row++;
+
+		output_Method[row] = "WAAVP";
+		waavp_u_ci(mean_1, mean_2, var_1, var_2, N_1, N_2, tail, &output_LCI[row], &output_UCI[row]);
+		output_Classification[row] = (sum_2==0) ? "100%red" : get_type_ci(1.0-obsred, output_LCI[row], output_UCI[row], H0_A, H0_I);
+		row++;
+
+		output_Method[row] = "Asymptotic";
+		mle_u_ci(mean_1, mean_2, var_1, var_2, N_1, N_2, tail, &output_LCI[row], &output_UCI[row]);
+		output_Classification[row] = (sum_2==0) ? "100%red" : get_type_ci(1.0-obsred, output_LCI[row], output_UCI[row], H0_A, H0_I);
+		row++;
+
+	}
+
+	DataFrame output = DataFrame::create(Named("Method") = output_Method,
+		Named("LCI") = output_LCI, Named("UCI") = output_UCI,
+		Named("pI") = output_pI, Named("pA") = output_pA, Named("Typology") = output_Classification);
+
+	return output;
+}
+
+
+Rcpp::DataFrame efficacy_frequencies_unpaired(int iters, Rcpp::NumericVector red, int N_tx, int N_ctl, double mu, double k_tx, double k_ctl, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
 {
 
 	// Check that the thresholds have 2 columns and >0 rows:
@@ -343,7 +437,7 @@ Rcpp::DataFrame efficacy_sample_size_unpaired(int iters, Rcpp::NumericVector red
 	Rcpp::IntegerVector iteration = Rcpp::seq(1L, iters);
 
 	Rcpp::DataFrame output = expGrid(methods, red, tseq, td, td, iteration, td, td, td, ts, Rcpp::Named("stringsAsFactors")=false);
-	output.names() = Rcpp::StringVector::create("Method", "Reduction", "ThresholdIndex", "ThresholdLower", "ThresholdUpper", "Iteration", "ObsReduction", "Stat1", "Stat2", "Classification");
+	output.names() = Rcpp::StringVector::create("Method", "Reduction", "ThresholdIndex", "ThresholdLower", "ThresholdUpper", "Iteration", "ObsReduction", "Stat1", "Stat2", "Typology");
 
 	// Get references to list items:
 	Rcpp::StringVector output_Method = output[0L];
@@ -477,7 +571,7 @@ Rcpp::DataFrame efficacy_sample_size_unpaired(int iters, Rcpp::NumericVector red
 }
 
 
-Rcpp::DataFrame efficacy_sample_size_paired(int iters, Rcpp::NumericVector red, int N, double mu, double k_pre, double k_post, double k_c, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+Rcpp::DataFrame efficacy_frequencies_paired(int iters, Rcpp::NumericVector red, int N, double mu, double k_pre, double k_post, double k_c, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
 {
 
 	// Check that the thresholds have 2 columns and >0 rows:
@@ -520,7 +614,7 @@ Rcpp::DataFrame efficacy_sample_size_paired(int iters, Rcpp::NumericVector red, 
 	Rcpp::IntegerVector iteration = Rcpp::seq(1L, iters);
 
 	Rcpp::DataFrame output = expGrid(methods, red, tseq, td, td, iteration, td, td, td, ts, Rcpp::Named("stringsAsFactors")=false);
-	output.names() = Rcpp::StringVector::create("Method", "Reduction", "ThresholdIndex", "ThresholdLower", "ThresholdUpper", "Iteration", "ObsReduction", "Stat1", "Stat2", "Classification");
+	output.names() = Rcpp::StringVector::create("Method", "Reduction", "ThresholdIndex", "ThresholdLower", "ThresholdUpper", "Iteration", "ObsReduction", "Stat1", "Stat2", "Typology");
 
 	// Get references to list items:
 	Rcpp::StringVector output_Method = output[0L];
@@ -679,7 +773,8 @@ RCPP_MODULE(rcpp_module){
 	using namespace Rcpp;
 
 	function("RCPP_efficacy_analysis", &efficacy_analysis);
-	function("RCPP_efficacy_sample_size_paired", &efficacy_sample_size_paired);
-	function("RCPP_efficacy_sample_size_unpaired", &efficacy_sample_size_unpaired);
+	function("RCPP_typology_analysis", &typology_analysis);
+	function("RCPP_efficacy_frequencies_paired", &efficacy_frequencies_paired);
+	function("RCPP_efficacy_frequencies_unpaired", &efficacy_frequencies_unpaired);
 
 }

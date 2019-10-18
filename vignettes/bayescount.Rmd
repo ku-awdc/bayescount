@@ -15,5 +15,286 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(bayescount)
+library("bayescount")
+library('dplyr')
+library('ggplot2')
 ```
+
+## Introduction
+
+This package is focussed on analysing the change in mean associated with two over-dispersed (assumed to be negative binomail) distributions.  It is currently under active development in conjunction with the work presented in:
+
+M.J.Denwood, G.T. Innocent, J.C. Prentice, L. Matthews, S.W.J. Reid, C.B. Pipper, B. Levecke, R.M. Kaplan, A.C. Kotze, J. Keiser, M. Palmeirim, and I.J. McKendrick. 2019. A Hypothesis Testing Framework for the Ratio of Means of Two Negative Binomial Distributions: Classifying the Efficacy of Anthelmintic Treatment against Intestinal Parasites. Accessed October 16, 2019. https://arxiv.org/abs/1910.06667.
+
+[The same article is also currently undergoing peer review for publication in the statistics literature]
+
+More information is also available from the [website referenced from the associated article](http://fecrt.com/framework/)
+
+## Data analysis
+
+The efficacy_analysis function allows a given dataset to be analysed.  For example we may have the following data:
+
+```{r}
+# Pre-treatment data:
+data_1 <- c(14, 22, 7, 29, 11, 1, 39, 6, 3, 0)
+# Post-treatment data:
+data_2 <- c(0, 2, 1, 1, 2, 0, 5, 2, 0, 3)
+efficacy_analysis(data_1, data_2, paired=TRUE, T_I=0.95, T_A=0.9)
+
+cbind(pre=data_1, post=data_2)
+```
+
+In this case we can calculate the mean of each dataset, as well as the variance/covariance estimates and correlation:
+
+```{r}
+mean(data_1)
+mean(data_2)
+
+cov(cbind(pre=data_1, post=data_2))
+cor(data_1, data_2)
+```
+
+There is positive covariance (correlation > 0), as is typical for this type of paired data.  
+
+In this case let's say that the expected efficacy of this intervention is 95%, and we are prepared to accept a non-inferiority margin of 10 percentage points.  This gives us threshold values of T_I = 0.95 AND T_A = 0.85.  We can then calculate the observed efficacy of the treatment intervention, and classifications according to each of the methods presented in the paper:
+
+```{r}
+( efficacy <- 100* (1- mean(data_2)/mean(data_1)) )
+efficacy_analysis(data_1, data_2, paired=TRUE, T_I=0.95, T_A=0.85)
+```
+
+All methods except the Asymptotic method share the classification of "Reduced Efficacy" based on the typology of 1c being observed for the combination of mean efficacy estimate and uncertainty (p-values and 95% confidence intervals).
+
+However, if we do the same analysis assuming that the data is unpaired then we obtain a classification of "Inconclusive" (typology 2b):
+
+```{r}
+efficacy_analysis(data_1, data_2, paired=FALSE, T_I=0.95, T_A=0.85)
+```
+
+The additional uncertainty (larger confidence intervals / high p-values) is due to the positive correlation being ignored by the analyses, leading to higher effective variance estimates being used for the control/treatment (as opposed to pre-treatment/post-treatment) datasets.
+
+An interactive shiny app is also provided as an alternative to using R code to run the analysis:
+
+```{r eval=FALSE, include=TRUE}
+launch_shiny("data_analysis")
+```
+
+## Typologies
+
+A key point of the article referenced in the introduction of this vignette is the use of the typology framework to classify datasets.  This R package also contains an exploratory tool to help understand how the typologies relate to a theoretical dataset that may be encountered in practice.  This can be used in R by using the following function, specifying the total counts for control/pre-treatment and treatment/post-treatment groups, and values of the over-dispersion parameters and correlation (for paired analysis only) as would be estimated from these datasets:
+
+```{r}
+efficacy_typologies(sum=c(400,20), N=c(10,10), k=c(1,1), cor=0.25, paired = TRUE,
+                    T_I = 0.99, T_A = 0.95)
+```
+
+However, it is much easier to explore this tool interactively using the shiny app provided:
+
+```{r eval=FALSE, include=TRUE}
+launch_shiny("typologies")
+```
+
+Note: the output is given as the data frame that would be produced by the efficacy_analysis function if such a hypothetical dataset were given to it.  For example the following two are equivalent:
+
+```{r}
+sums <- c(sum(data_1), sum(data_2))
+Ns <- c(length(data_1), length(data_2))
+vars <- c(var(data_1), var(data_2))
+ks <- (sums/Ns)^2 / (vars - sums/Ns)
+cor <- cor(data_1, data_2)
+efficacy_typologies(sums, Ns, ks, cor, paired=TRUE, T_I=0.95, T_A=0.85)
+efficacy_analysis(data_1, data_2, paired=TRUE, T_I=0.95, T_A=0.85, use_ml=FALSE)
+```
+
+
+## Study planning
+
+The efficacy_frequencies function can be used to assess the probability of obtaining each of the possible typologies and/or classifications given a study with proposed sample size and other parameters via Monte Carlo integration.  This can be used to provide an indication of the necessary sample size for a future study in order to obtain a sufficiently high probability of obtaining a non-inconclusive classification.  When considering just the outcomes of each of the two individual inferioirty/non-inferiority tests, then this is a standard power analysis.
+
+For example we can simulate and analyse 1000 datasets each assuming a population reduction equal to the critical thresholds given by T_I and T_A:
+
+```{r}
+typologies <- efficacy_frequencies(r=c(0.95, 0.99), paired = TRUE, T_I = 0.99, T_A = 0.95,
+                    N = c(20, 20), mean=20, k=c(1,1), cor=0.25, iterations = 10^3)
+
+library('dplyr')
+typologies %>% filter(Method=='BNB')
+```
+
+Or we can group by Reduction and Classification rather than seeing the individual typologies:
+
+```{r}
+classifications <- typologies %>%
+  group_by(Method, Efficacy, Classification) %>%
+  summarise(Frequency = sum(Frequency), Proportion = sum(Proportion)) %>%
+  ungroup()
+
+classifications %>% filter(Method == 'BNB')
+
+ggplot(classifications, aes(x=Method, y=Proportion, fill=Classification)) +
+  geom_bar(stat='identity') +
+  facet_wrap(~ paste0(Efficacy*100,"% efficacy")) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Note that this function can also be used to assess the type 1 error rate associated with the statistical method being used - for the example above the type 1 error rate of the BNB method is 2.2% for the non-inferioirty test (falsely classifying the efficacy as adequate at the supremum of the set r < 95%) and 2.3% for the inferiority test (falsely classifying the efficacy as reduced at the infimum of the set 99% < r < 100%).  These are within the expected values based on the requested alpha error rate of 2.5%.  
+
+An interactive shiny app is also provided as an alternative to using R code to run the analysis:
+
+```{r eval=FALSE, include=TRUE}
+launch_shiny("study_planning")
+```
+
+## Replication of simulation results from the manuscript
+
+Code similar to the following can be used to replicate the full analyses presented in the paper:
+
+```{r bigsim}
+# Values used for this vignette to reduce running time:
+iters <- 10^2
+by <- 0.025
+Ns <- c(20, 91)
+
+# Values used for the paper:
+# iters <- 10^4
+# by <- 0.001
+# Ns <- c(20, 91, 1000)
+
+# Set up the simulation parameters:
+simpars <- structure(list(Parasite = c("Ascaris", "Hookworm", "Trichuris"
+), Target = c(0.95, 0.7, 0.5), Delta = c(0.05, 0.05, 0.05), mu = c(1255, 
+74, 162), k1 = c(0.08, 0.84, 0.92), k2 = c(0.0512, 0.58, 0.53
+), cor = c(0.67, 0.65, 0.68)), class = "data.frame", row.names = c(NA, 
+-3L))
+
+simpars
+
+simpars <- simpars %>%
+	mutate(T_I=Target, T_A=Target-Delta, iters=iters, by=by) %>%
+	full_join(expand.grid(Parasite=unique(simpars$Parasite), N=Ns, stringsAsFactors=FALSE),
+	          by='Parasite')
+
+# Run the Monte Carlo simulation:
+results <- do.call('rbind', lapply(seq_len(nrow(simpars)), function(i){
+  t <- Sys.time()
+  
+  pp <- simpars[i,,drop=FALSE]
+  r <- seq(0, 1, by=pp$by)
+  typologies <- efficacy_frequencies(r, paired = TRUE, T_I = pp$T_I, T_A = pp$T_A, 
+          N = pp$N, mean=pp$mu, k=c(pp$k1,pp$k2), cor=pp$cor, iterations = pp$iters)
+  
+  cat("Time taken for parameter set ", i, ": ",
+      round(as.numeric(Sys.time()-t, units='mins'),2), " minutes\n", sep="")
+  rv <- typologies %>% mutate(Parasite = pp$Parasite, N = pp$N,
+                              T_I = pp$T_I, T_A = pp$T_A)
+  return( rv )
+}))
+
+# Summarise the results in the format needed for the figures:
+classifications <- results %>%
+	group_by(Parasite, N, T_I, T_A, Method, Efficacy, Classification) %>%
+  summarise(Frequency = sum(Frequency), Proportion = sum(Proportion)) %>%
+  ungroup() %>%
+  mutate(N=factor(N)) %>%
+	mutate(Method=factor(Method, 
+	         levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))) %>%
+	mutate(Parasite=factor(Parasite, levels=c('Hookworm','Ascaris','Trichuris')))
+
+str(classifications)
+
+inferiority_test <- results %>%
+  filter(Classification %in% c('Reduced','Borderline')) %>%
+	group_by(Parasite, N, T_I, T_A, Method, Efficacy) %>%
+  summarise(Frequency = sum(Frequency), Probability = sum(Proportion)) %>%
+  ungroup() %>%
+  mutate(N=factor(N)) %>%
+	mutate(Method=factor(Method,
+	         levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))) %>%
+	mutate(Parasite=factor(Parasite, levels=c('Hookworm','Ascaris','Trichuris')))
+
+str(inferiority_test)
+
+equivalence_test <- results %>%
+  filter(Classification %in% c('Adequate','Borderline')) %>%
+	group_by(Parasite, N, T_I, T_A, Method, Efficacy) %>%
+  summarise(Frequency = sum(Frequency), Probability = sum(Proportion)) %>%
+  ungroup() %>%
+  mutate(N=factor(N)) %>%
+	mutate(Method=factor(Method,
+	         levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))) %>%
+	mutate(Parasite=factor(Parasite, levels=c('Hookworm','Ascaris','Trichuris')))
+
+str(equivalence_test)
+
+```
+
+Figure 2 can then be reproduced as:
+
+```{r fig2}
+theme_set(theme_light())
+
+cols <- c("#F8766D","#619CFF","purple","#00BA38","orange")
+names(cols) <- c("Reduced","Inconclusive","Borderline","Adequate","Error")
+plnames <- c('Typology 1 (Reduced)', 'Typology 2 (Inconclusive)', 
+             'Typology 3 (Borderline)', 'Typology 4 (Adequate)', "Failed")
+
+ggplot(classifications %>%
+         filter(N=='91', Efficacy <= T_I+0.1, Efficacy >= T_A-0.1), 
+       aes(x=Efficacy*100, y=Proportion, col=Classification,
+           fill=Classification)) +
+	geom_bar(stat='identity', alpha=0.75) +
+	scale_colour_manual(labels=plnames, values=cols) +
+	scale_fill_manual(labels=plnames, values=cols) +
+	geom_vline(aes(xintercept=T_A*100), col='black', lty='dashed') +
+	geom_vline(aes(xintercept=T_I*100), col='black', lty='solid') +
+	facet_grid(Method ~ Parasite, scales='free_x') +
+	xlab('Simulated Efficacy (%)') +
+	ylab(NULL) + 
+	scale_y_continuous(labels=NULL) +
+	scale_x_continuous(breaks=seq(0,100,by=5)) +
+	theme(legend.position='bottom', legend.title=element_blank())
+
+```
+
+And figures S1-S4 as follows:
+
+```{r figs1234}
+hcol <- 'grey'
+hlty <- 'dashed'
+vcol <- 'grey'
+vlty <- 'dashed'
+
+ggplot(inferiority_test %>% filter(Efficacy >= T_I), 
+       aes(x=Efficacy*100, y=Probability, col=N)) +
+	geom_line() +
+	geom_hline(yintercept=0.025, col=hcol, lty=hlty) +
+	facet_grid(Method ~ Parasite, scales='free') +
+	ylab("Inferiority Test:  Type I Error Rate") + 
+  xlab('Simulated Efficacy (%)') + ggtitle('Figure S1')
+
+ggplot(inferiority_test %>% filter(Efficacy < T_I), 
+       aes(x=Efficacy*100, y=1-Probability, col=N)) +
+	geom_line() +
+	geom_vline(aes(xintercept=T_A*100), data=simpars, col=vcol, lty=vlty) +
+	facet_grid(Method ~ Parasite, scales='free') +
+	ylab("Inferiority Test:  Type II Error Rate") + 
+  xlab('Simulated Efficacy (%)') + ggtitle('Figure S2')
+
+ggplot(equivalence_test %>% filter(Efficacy <= T_A), 
+       aes(x=Efficacy*100, y=Probability, col=N)) +
+	geom_line() +
+	geom_hline(yintercept=0.025, col=hcol, lty=hlty) +
+	facet_grid(Method ~ Parasite, scales='free') +
+	ylab("Non-Inferioirty Test:  Type I Error Rate") + 
+  xlab('Simulated Efficacy (%)') + ggtitle('Figure S3')
+
+ggplot(equivalence_test %>% filter(Efficacy > T_A), 
+       aes(x=Efficacy*100, y=1-Probability, col=N)) +
+	geom_line() +
+	geom_vline(aes(xintercept=T_I*100), data=simpars, col=vcol, lty=vlty) +
+	facet_grid(Method ~ Parasite, scales='free') +
+	ylab("Non-Inferioirty Test:  Type II Error Rate") + 
+  xlab('Simulated Efficacy (%)') + ggtitle('Figure S4')
+```
+
+
