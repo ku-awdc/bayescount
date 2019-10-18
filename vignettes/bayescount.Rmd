@@ -134,7 +134,7 @@ classifications %>% filter(Method == 'BNB')
 ggplot(classifications, aes(x=Method, y=Proportion, fill=Classification)) +
   geom_bar(stat='identity') +
   facet_wrap(~ paste0(Efficacy*100,"% efficacy")) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+	coord_flip()
 ```
 
 Note that this function can also be used to assess the type 1 error rate associated with the statistical method being used - for the example above the type 1 error rate of the BNB method is 2.2% for the non-inferioirty test (falsely classifying the efficacy as adequate at the supremum of the set r < 95%) and 2.3% for the inferiority test (falsely classifying the efficacy as reduced at the infimum of the set 99% < r < 100%).  These are within the expected values based on the requested alpha error rate of 2.5%.  
@@ -196,8 +196,6 @@ classifications <- results %>%
   summarise(Frequency = sum(Frequency), Proportion = sum(Proportion)) %>%
   ungroup() %>%
   mutate(N=factor(N)) %>%
-	mutate(Method=factor(Method, 
-	         levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))) %>%
 	mutate(Parasite=factor(Parasite, levels=c('Hookworm','Ascaris','Trichuris')))
 
 str(classifications)
@@ -208,8 +206,6 @@ inferiority_test <- results %>%
   summarise(Frequency = sum(Frequency), Probability = sum(Proportion)) %>%
   ungroup() %>%
   mutate(N=factor(N)) %>%
-	mutate(Method=factor(Method,
-	         levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))) %>%
 	mutate(Parasite=factor(Parasite, levels=c('Hookworm','Ascaris','Trichuris')))
 
 str(inferiority_test)
@@ -220,8 +216,6 @@ equivalence_test <- results %>%
   summarise(Frequency = sum(Frequency), Probability = sum(Proportion)) %>%
   ungroup() %>%
   mutate(N=factor(N)) %>%
-	mutate(Method=factor(Method,
-	         levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))) %>%
 	mutate(Parasite=factor(Parasite, levels=c('Hookworm','Ascaris','Trichuris')))
 
 str(equivalence_test)
@@ -234,7 +228,7 @@ Figure 2 can then be reproduced as:
 theme_set(theme_light())
 
 cols <- c("#F8766D","#619CFF","purple","#00BA38","orange")
-names(cols) <- c("Reduced","Inconclusive","Borderline","Adequate","Error")
+names(cols) <- c("Reduced","Inconclusive","Borderline","Adequate","Method_Failure")
 plnames <- c('Typology 1 (Reduced)', 'Typology 2 (Inconclusive)', 
              'Typology 3 (Borderline)', 'Typology 4 (Adequate)', "Failed")
 

@@ -107,7 +107,7 @@ efficacy_frequencies <- function(r = NA, paired = TRUE, T_I = 0.99, T_A = 0.95, 
 	sumres$Proportion[is.na(sumres$Proportion)] <- 0
 
 	typgrp <- gsub("[[:alpha:]]","",sumres$Typology)
-	sumres$Classification <- factor(sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Error"), levels=c("Reduced","Inconclusive","Borderline","Adequate","Error"))
+	sumres$Classification <- factor(sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Method_Failure"), levels=c("Reduced","Inconclusive","Borderline","Adequate","Method_Failure"))
 
 	# Remove unwanted attributes:
 	attr(sumres, "out.attrs") <- NULL

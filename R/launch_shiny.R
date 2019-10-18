@@ -9,7 +9,7 @@
 #' @details
 #' The apps that are currently available are:
 #' - **data_analysis** : analyse an existing dataset
-#' - **framework** : examine the implications of different interpretative frameworks for ERR / FECR
+#' - **typologies** : examine the typology resulting from a hypothetical dataset and implications of different interpretative frameworks for ERR / FECR
 #' * **study_planning** : sample size calculations for a prospective study
 #'
 #' @seealso \code{\link{bayescount}}
@@ -23,29 +23,24 @@ launch_shiny <- function(appname, ...){
 	}
 	apa <- list.files(ad)
 
-	if(missing(appname) || !is.character(appname) || length(appname)!=1 || is.na(appname) || ! appname %in% apa){
+	if(missing(appname) || !is.character(appname) || length(appname)!=1 || is.na(appname)){
 		stop("Please specify one of the following appnames to run:\n\t", paste(apa, collpase=' '), call. = FALSE)
 	}
-
-	if(appname == "typologies"){
-		pn <- c("dplyr", "tibble", "tidyr", "ggplot2")
-
-	}else if(appname == "data_analysis"){
-		pn <- "rhandsontable"
-		parasitology <- FALSE
-
-	}else if(appname == "framework"){
-		stop("not yet implemented")
-
-	}else if(appname == "study_planning"){
-		stop("not yet implemented")
-
-	}else{
-		warning("The requirements for the specified shiny app are not known")
+	appname <- apa[pmatch(appname, apa)]
+	if(is.na(appname)){
+		stop("Appname not recognised: please specify one of the following appnames to run:\n\t", paste(apa, collpase=' '), call. = FALSE)
 	}
+	
+	# TODO: fix waavp_committee app to work with new bayescount
+	if(appname=="waavp_committee")
+		stop("That app is currently broken, sorry!")
+	
+	# TODO: replace this with the app-specific package requirements from top of global.R inside requested app:
+	pn <- c('shiny', 'shinythemes', 'rhandsontable')
+	# Also write a test to make sure they are all listed as imports/suggests by bayescount
 
-	if(!all(sapply(c('shiny', 'shinythemes', pn), requireNamespace, quietly=TRUE))){
-		stop("Additional packages must be installed for the specified shiny app - you should run:", iptext(c('shiny','shinythemes'), pn), call. = FALSE)
+	if(!all(sapply(pn, requireNamespace, quietly=TRUE))){
+		stop("Additional packages must be installed for the specified shiny app - you should run:", iptext(pn), call. = FALSE)
 	}
 
 	shiny::runApp(appDir=file.path(ad, appname), ...)

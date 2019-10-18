@@ -40,12 +40,12 @@ fluidPage(
 				
 				fluidRow(
 					column(6,
-						numericInput('Npre', 'Pre-treatment sample size', min=1, value=20, step=1, width='100%'),
+						numericInput('Npre', 'Pre-treatment sample size', min=1, value=10, step=1, width='100%'),
 						numericInput('Rpre', 'Pre-treatment replicates', min=1, value=1, step=1, width='100%'),
 						if(parasitology) numericInput('EDTpre', 'Pre-treatment group Egg Detection Threshold', value=25, min=0, width='100%')
 					),
 					column(6,
-						numericInput('Npost', 'Post-treatment sample size', min=1, value=20, step=1, width='100%'),
+						numericInput('Npost', 'Post-treatment sample size', min=1, value=10, step=1, width='100%'),
 						numericInput('Rpost', 'Post-treatment replicates', min=1, value=1, step=1, width='100%'),
 						if(parasitology) numericInput('EDTpost', 'Post-treatment group Egg Detection Threshold', value=25, min=0, width='100%')
 					)
@@ -56,12 +56,12 @@ fluidPage(
 				
 				fluidRow(
 					column(6,
-						numericInput('Ncont', 'Control group sample size', min=1, value=20, step=1, width='100%'),
+						numericInput('Ncont', 'Control group sample size', min=1, value=10, step=1, width='100%'),
 						numericInput('Rcont', 'Control group replicates', min=1, value=1, step=1, width='100%'),
 						if(parasitology) numericInput('EDTcont', 'Control group Egg Detection Threshold', value=25, min=0, width='100%')
 					),
 					column(6,
-						numericInput('Ntx', 'Treatment group sample size', min=1, value=20, step=1, width='100%'),
+						numericInput('Ntx', 'Treatment group sample size', min=1, value=10, step=1, width='100%'),
 						numericInput('Rtx', 'Treatment group replicates', min=1, value=1, step=1, width='100%'),
 						if(parasitology) numericInput('EDTtx', 'Treatment group Egg Detection Threshold', value=25, min=0, width='100%')
 					)

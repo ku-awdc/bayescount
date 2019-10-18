@@ -255,7 +255,8 @@ function(input, output, session) {
 		# TODO: make sure mean_rato works OK
 		mean_ratio <- 1
 		
-		results <- efficacy_analysis(predata, postdata, paired, input$target/100, (input$target-input$nim)/100, tail)
+		results <- efficacy_analysis(data_1=predata, data_2=postdata, paired=paired, T_I=input$target/100, T_A=(input$target-input$nim)/100, S=c(1,1), tail=tail, bnb_priors = c(0, 0), use_delta = NA,
+		  beta_iters = 10^4, use_ml = TRUE, binomial_priors = c(1, 1), binomial_cl_adj = 0.2)
 		
 		obsred <- round( (1 - (mean(postdata)/mean(predata))) * 100 , 1)
 		
@@ -266,7 +267,7 @@ function(input, output, session) {
 		}
 		outstring <- paste0(outstring, " &nbsp; The threshold for inferiority (T_I) is: &nbsp; ", input$target, "%<br> &nbsp; The threshold for non-inferiority (T_A) is: &nbsp; ", input$target-input$nim, "%<br><br>")
 		
-		colouredclass <- function(x) paste0("<span style='color:", switch(x, "Reduced"="red", "Inconclusive"="grey", "Marginal"="orange", "Adequate"="blue", "black"), ";'>", x, if(x!="Inconclusive" && !grepl("Error",x)) " Efficacy", "</span>")
+		colouredclass <- function(x) paste0("<span style='color:", switch(as.character(x), "Reduced"="red", "Inconclusive"="grey", "Marginal"="orange", "Adequate"="blue", "black"), ";'>", x, if(x!="Inconclusive" && !grepl("Error",x)) " Efficacy", "</span>")
 		
 		pci <- function(x, y, adj=1) paste0(100 * (1-(input$pthresh*adj*2)), "% CI: &nbsp; ", round(x*100,1), "-", round(y*100,1), "%")
 		pp <- function(x) if(x < 0.001) "<0.001" else format(c(round(x,3),0.001))[1]

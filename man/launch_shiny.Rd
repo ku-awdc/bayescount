@@ -18,7 +18,7 @@ This function provides a convinient way in which to launch one of the interactiv
 The apps that are currently available are:
 \itemize{
 \item \strong{data_analysis} : analyse an existing dataset
-\item \strong{framework} : examine the implications of different interpretative frameworks for ERR / FECR
+\item \strong{typologies} : examine the typology resulting from a hypothetical dataset and implications of different interpretative frameworks for ERR / FECR
 }
 \itemize{
 \item \strong{study_planning} : sample size calculations for a prospective study

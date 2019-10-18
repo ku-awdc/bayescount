@@ -61,7 +61,11 @@ efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,
 	results <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(tail), as.double(binomial_cl), as.double(binomial_priors))
 
 	typgrp <- gsub("[[:alpha:]]","",results$Typology)
-	results$Classification <- sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Error with method")
+	results$Classification <- sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Method_Failure")
+	
+	results$Method <- factor(results$Method, levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))
+	results$Typology <- factor(results$Typology, levels=c("1ab", "1c", "2a", "2b","2c", "3", "4a","4bc","100%red", "<0%red", "error"))
+	results$Classification <- factor(results$Classification, levels=c("Reduced", "Inconclusive", "Borderline", "Adequate","Method_Failure"))
 
 	return(results)
 }
