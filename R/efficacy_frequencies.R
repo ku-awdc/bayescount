@@ -13,7 +13,7 @@
 #' @param k a length-2 strictly positive continuous number giving the over-dispersion of the control/pre-treatment and treatment/post-treatment data
 #' @param cor a length-1 number between 0 and 1 giving the correlation between pre- and post-treatment data (ignored for an unpaired study)
 #' @param iterations the number of iterations to use for the Monte Carlo approximation
-#' @param tail the significance level to use for the classification, where 0.025 corresponds to 95\% CI and 0.05 corresponds to 90\% CI
+#' @param alpha the significance level to use for the classification, where 0.025 corresponds to 95\% CI and 0.05 corresponds to 90\% CI
 #' @param bnb_priors priors to use for the BNB method
 #' @param use_delta logical flag to use the delta method approximation for the BNB method (NA means to use it unless it fails)
 #' @param beta_iters number of iterations to use for the Monte Carlo approximation of the beta distribution transformation for the BNB method (when use_delta==FALSE)
@@ -33,9 +33,10 @@
 #' ( critical_values <- efficacy_frequencies(r=c(0.95, 0.99), paired = TRUE, T_I = 0.99, T_A = 0.95) )
 #' # The same for an unpaired analysis (excluding the Binimial method):
 #' ( critical_values <- efficacy_frequencies(r=c(0.95, 0.99), paired = FALSE, T_I = 0.99, T_A = 0.95) )
-efficacy_frequencies <- function(r = NA, paired = TRUE, T_I = 0.99, T_A = 0.95, N = c(20,20), R = c(1,1), S = c(1,1), mean = 20, k = c(1, 0.7), cor = 0.5, iterations=10^3, tail=0.025, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, use_ml=TRUE, binomial_priors=c(1,1), binomial_cl_adj=0.2){
+efficacy_frequencies <- function(r = NA, paired = TRUE, T_I = 0.99, T_A = 0.95, N = c(20,20), R = c(1,1), S = c(1,1), mean = 20, k = c(1, 0.7), cor = 0.5, iterations=10^3, alpha=0.025, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, use_ml=TRUE, binomial_priors=c(1,1), binomial_cl_adj=0.2){
 
 	#TODO: parameter checks
+	#TODO: remove clash for r and R arguments
 
 	checksingleprob(T_I)
 	checksingleprob(T_A)
@@ -77,7 +78,7 @@ efficacy_frequencies <- function(r = NA, paired = TRUE, T_I = 0.99, T_A = 0.95, 
 		use_delta <- 1L
 	}
 
-	binomial_cl <- c(tail*binomial_cl_adj, 1-(tail*binomial_cl_adj))
+	binomial_cl <- c(alpha*binomial_cl_adj, 1-(alpha*binomial_cl_adj))
 	stopifnot(length(binomial_cl)==2 && all(!is.na(binomial_cl)) && all(binomial_cl > 0) && all(binomial_cl < 1) && binomial_cl[1] < binomial_cl[2])
 
 	# Controls if the large-sample approximation is used (1 means if necessary):
@@ -89,10 +90,10 @@ efficacy_frequencies <- function(r = NA, paired = TRUE, T_I = 0.99, T_A = 0.95, 
 
 		if(length(N)==1) N <- rep(N,2)
 
-		results <- RCPP_efficacy_frequencies_paired(as.integer(iterations), as.double(rvs), as.integer(N[1]), as.double(mean), as.double(k[1]), as.double(k[2]), as.double(kc), matrix(as.double(c(T_A,T_I)), ncol=2, byrow=TRUE), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.integer(approx), as.double(tail), as.logical(use_ml), as.double(binomial_cl), as.double(binomial_priors))
+		results <- RCPP_efficacy_frequencies_paired(as.integer(iterations), as.double(rvs), as.integer(N[1]), as.double(mean), as.double(k[1]), as.double(k[2]), as.double(kc), matrix(as.double(c(T_A,T_I)), ncol=2, byrow=TRUE), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.integer(approx), as.double(alpha), as.logical(use_ml), as.double(binomial_cl), as.double(binomial_priors))
 
 	}else{
-		results <- RCPP_efficacy_frequencies_unpaired(as.integer(iterations), as.double(rvs), as.integer(N[1]), as.integer(N[2]), as.double(mean), as.double(k[1]), as.double(k[2]), matrix(as.double(c(T_A,T_I)), ncol=2, byrow=TRUE), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.integer(approx), as.double(tail), as.logical(use_ml))
+		results <- RCPP_efficacy_frequencies_unpaired(as.integer(iterations), as.double(rvs), as.integer(N[1]), as.integer(N[2]), as.double(mean), as.double(k[1]), as.double(k[2]), matrix(as.double(c(T_A,T_I)), ncol=2, byrow=TRUE), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.integer(approx), as.double(alpha), as.logical(use_ml))
 	}
 
 	sumres <- results %>%
@@ -113,7 +114,7 @@ efficacy_frequencies <- function(r = NA, paired = TRUE, T_I = 0.99, T_A = 0.95, 
 	attr(sumres, "out.attrs") <- NULL
 
 	# Add simulation parameters:
-	attr(sumres, "parameters") <- list(paired = paired, T_I = T_I, T_A = T_A, N = N, R = R, S = S, mean = mean, k = k, cor = cor, iterations=iterations, tail=tail, bnb_priors=bnb_priors, use_delta=use_delta, beta_iters=beta_iters, use_ml=use_ml, binomial_priors=binomial_priors, binomial_cl_adj=binomial_cl_adj)
+	attr(sumres, "parameters") <- list(paired = paired, T_I = T_I, T_A = T_A, N = N, R = R, S = S, mean = mean, k = k, cor = cor, iterations=iterations, alpha=alpha, bnb_priors=bnb_priors, use_delta=use_delta, beta_iters=beta_iters, use_ml=use_ml, binomial_priors=binomial_priors, binomial_cl_adj=binomial_cl_adj)
 
 	return(sumres)
 }

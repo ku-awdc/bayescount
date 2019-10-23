@@ -31,10 +31,10 @@ RoxygenNote: 6.1.1
 Depends:
     R (>= 3.3.0)
 Imports:
-    stats,
-    utils,
+	parallel,
 	dplyr,
 	rlang,
+	tidyr,
 	Rcpp (>= 1.0.0)
 Suggests:
 	shiny,

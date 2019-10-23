@@ -2,9 +2,13 @@
 
 export(efficacy_analysis)
 export(efficacy_frequencies)
+export(efficacy_power)
+export(efficacy_samplesize)
 export(efficacy_typologies)
 export(launch_shiny)
 import(Rcpp)
 import(dplyr)
+importFrom(parallel,mclapply)
 importFrom(rlang,.data)
+importFrom(tidyr,gather)
 useDynLib(bayescount)

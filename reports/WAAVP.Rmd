@@ -1,0 +1,66 @@
+---
+title: "WAAVP"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library('bayescount')
+```
+
+```{r eval=FALSE, include=FALSE}
+dput(simparameters %>% group_by(Species, k1, k2, cor) %>% summarise())
+dput(simparameters %>% group_by(Species, Protocol, Drug, Target, Delta) %>% summarise() %>% mutate(T_A = Target-Delta))
+```
+
+
+```{r}
+kvals <- structure(list(Species = c("Calves", "Cattle", "Equine", "Sheep"
+), k1 = c(1.5, 1.1, 0.6, 1.2), k2 = c(0.4, 0.5, 0.6, 0.7), cor = c(0.1, 
+0.1, 0.5, 0.5)), class = c("grouped_df", "tbl_df", "tbl", "data.frame"
+), row.names = c(NA, -4L), groups = structure(list(Species = c("Calves", 
+"Cattle", "Equine", "Sheep"), k1 = c(1.5, 1.1, 0.6, 1.2), k2 = c(0.4, 
+0.5, 0.6, 0.7), .rows = list(1L, 2L, 3L, 4L)), row.names = c(NA, 
+-4L), class = c("tbl_df", "tbl", "data.frame"), .drop = TRUE))
+
+targets <- structure(list(Species = c("Calves", "Calves", "Cattle", "Cattle", 
+"Equine", "Equine", "Equine", "Equine", "Sheep", "Sheep"), Protocol = c("Clinical", 
+"Research", "Clinical", "Research", "Clinical", "Clinical", "Research", 
+"Research", "Clinical", "Research"), Drug = c("All", "All", "All", 
+"All", "AVM", "Pyrantel", "AVM", "Pyrantel", "All", "All"), Target = c(99, 
+99, 99, 99, 99.9, 98, 99.9, 98, 99, 99), Delta = c(9, 4, 9, 4, 
+7.9, 15, 2.9, 10, 9, 4), T_A = c(90, 95, 90, 95, 92, 83, 97, 
+88, 90, 95)), class = c("grouped_df", "tbl_df", "tbl", "data.frame"
+), row.names = c(NA, -10L), groups = structure(list(Species = c("Calves", 
+"Calves", "Cattle", "Cattle", "Equine", "Equine", "Equine", "Equine", 
+"Sheep", "Sheep"), Protocol = c("Clinical", "Research", "Clinical", 
+"Research", "Clinical", "Clinical", "Research", "Research", "Clinical", 
+"Research"), Drug = c("All", "All", "All", "All", "AVM", "Pyrantel", 
+"AVM", "Pyrantel", "All", "All"), Target = c(99, 99, 99, 99, 
+99.9, 98, 99.9, 98, 99, 99), .rows = list(1L, 2L, 3L, 4L, 5L, 
+    6L, 7L, 8L, 9L, 10L)), row.names = c(NA, -10L), class = c("tbl_df", 
+"tbl", "data.frame"), .drop = TRUE))
+```
+
+
+```{r}
+set.seed(2019-10-23)
+alpha <- 0.025
+minN <- 5
+maxN <- 50
+byN <- 5
+
+spp <- "Calves"
+ptc <- "Research"
+mean <- 50
+
+k1 <- kvals %>% filter(Species==spp) %>% pull(k1)
+k2 <- kvals %>% filter(Species==spp) %>% pull(k2)
+cor <- kvals %>% filter(Species==spp) %>% pull(cor)
+ti <- targets %>% filter(Species==spp, Protocol==ptc) %>% pull(Target)
+ta <- targets %>% filter(Species==spp, Protocol==ptc) %>% pull(T_A)
+
+ss <- efficacy_samplesize(minN = minN, maxN = maxN, byN = byN, paired = TRUE, plot=TRUE, alpha=alpha, mean=mean, k=c(k1,k2), cor=cor, T_A=ta/100, T_I=ti/100)
+ss$Plot
+```
+

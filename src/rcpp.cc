@@ -315,7 +315,7 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 	return output;
 }
 
-Rcpp::DataFrame typology_analysis(int sum_1, int sum_2, int N_1, int N_2, double k_1, double k_2, double cor, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+Rcpp::DataFrame typology_analysis(const int sum_1, const int sum_2, const int N_1, const int N_2, const double k_1, const double k_2, const double cor, const bool paired, const double mean_ratio, const double H0_I, const double H0_A, const Rcpp::NumericVector conjugate_priors, const int delta, const int beta_iters, const int approx, const double tail, const Rcpp::NumericVector dobson_cl, const Rcpp::NumericVector dobson_priors)
 {
 	using namespace Rcpp;
 
@@ -404,7 +404,7 @@ Rcpp::DataFrame typology_analysis(int sum_1, int sum_2, int N_1, int N_2, double
 }
 
 
-Rcpp::DataFrame efficacy_frequencies_unpaired(int iters, Rcpp::NumericVector red, int N_tx, int N_ctl, double mu, double k_tx, double k_ctl, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
+Rcpp::DataFrame efficacy_frequencies_unpaired(const int iters, const Rcpp::NumericVector red, const int N_ctl, const int N_tx, const double mu, const double k_tx, const double k_ctl, const Rcpp::NumericMatrix thresholds, const Rcpp::NumericVector conjugate_priors, const int delta, const int beta_iters, const int approx, const double tail, const bool useml)
 {
 
 	// Check that the thresholds have 2 columns and >0 rows:
@@ -425,6 +425,8 @@ Rcpp::DataFrame efficacy_frequencies_unpaired(int iters, Rcpp::NumericVector red
 			Rcpp::stop("Thresholds must be between 0 and 1");
 		}
 	}
+	// Check that N has 2 columns and >0 rows:
+	
 
 	// Use the expand.grid R function:
 	Rcpp::Function expGrid("expand.grid");

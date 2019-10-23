@@ -12,7 +12,7 @@
 #' @param R a length-2 integer giving the number of replicates used for control/pre-treatment and treatment/post-treatment individuals
 #' @param S a length-2 numeric variable giving the counting sensitivity used for control/pre-treatment and treatment/post-treatment individuals
 #' @param method a character vector indicating the statistical methods to show results for, where 'all' means all available methods
-#' @param tail the significance level to use for the classification, where 0.025 corresponds to 95\% CI and 0.05 corresponds to 90\% CI
+#' @param alpha the significance level to use for the classification, where 0.025 corresponds to 95\% CI and 0.05 corresponds to 90\% CI
 #' @param bnb_priors priors to use for the BNB method
 #' @param use_delta logical flag to use the delta method approximation for the BNB method (NA means to use it unless it fails)
 #' @param beta_iters number of iterations to use for the Monte Carlo approximation of the beta distribution transformation for the BNB method (when use_delta==FALSE)
@@ -27,7 +27,7 @@
 #' efficacy_typologies(sum=c(20,1), N=c(10,10), k=c(1,1), cor=0.25,
 #' paired = TRUE, T_I = 0.99, T_A = 0.95)
 
-efficacy_typologies <- function(sum, N, k=c(1,1), cor=0.1, paired=TRUE, T_I=0.99, T_A=0.95, R=c(1,1), S=c(1,1), method='all', tail=0.025, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, binomial_priors=c(1,1), binomial_cl_adj=0.2){
+efficacy_typologies <- function(sum, N, k=c(1,1), cor=0.1, paired=TRUE, T_I=0.99, T_A=0.95, R=c(1,1), S=c(1,1), method='all', alpha=0.025, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, binomial_priors=c(1,1), binomial_cl_adj=0.2){
 
 	# TODO: input checks
 
@@ -45,10 +45,10 @@ efficacy_typologies <- function(sum, N, k=c(1,1), cor=0.1, paired=TRUE, T_I=0.99
 		use_delta <- 1L
 	}
 
-	binomial_cl <- c(tail*binomial_cl_adj, 1-(tail*binomial_cl_adj))
+	binomial_cl <- c(alpha*binomial_cl_adj, 1-(alpha*binomial_cl_adj))
 	stopifnot(length(binomial_cl)==2 && all(!is.na(binomial_cl)) && all(binomial_cl > 0) && all(binomial_cl < 1) && binomial_cl[1] < binomial_cl[2])
 
-	results <- RCPP_typology_analysis(as.integer(sum[1]), as.integer(sum[2]), as.integer(N[1]), as.integer(N[2]), as.double(k[1]), as.double(k[2]), as.double(cor), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), 1L, as.double(tail), as.double(binomial_cl), as.double(binomial_priors))
+	results <- RCPP_typology_analysis(as.integer(sum[1]), as.integer(sum[2]), as.integer(N[1]), as.integer(N[2]), as.double(k[1]), as.double(k[2]), as.double(cor), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors))
 
 	typgrp <- gsub("[[:alpha:]]","",results$Typology)
 	results$Classification <- sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Method_Failure")
