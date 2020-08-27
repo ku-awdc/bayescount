@@ -770,6 +770,196 @@ Rcpp::DataFrame efficacy_frequencies_paired(int iters, Rcpp::NumericVector red, 
 }
 
 
+// TODO: power_matrix_unpaired
+
+
+Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector N, Rcpp::NumericVector nim, double target, double mu, double k_pre, double k_post, double k_c, int iters, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
+{
+
+	// Check that all nim are >0:
+	for(int i=0; i<nim.length(); ++i)
+	{
+		if(nim[i] <= 0.0)
+		{
+			Rcpp::stop("The non-inferiority margin must be strictly positive");
+		}
+	}
+
+	// Check that k_c is greater than pre and post:
+	if(k_c < k_pre || k_c < k_post){
+		Rcpp::stop("k_c must be larger than k_pre and k_post");
+	}
+
+	// TODO: tidy up check and error:
+	if((double(N)*double(mu)) > (0.1 * INT_MAX)){
+		Rcpp::stop("Possible int overflow");
+	}
+
+	// Use the expand.grid R function:
+	Rcpp::Function expGrid("expand.grid");
+
+	Rcpp::StringVector methods = { "BNB", "Gamma", "WAAVP", "Asymptotic", "Binomial" };
+	Rcpp::IntegerVector tseq = Rcpp::seq(1L, thresholds.nrow());
+	Rcpp::DoubleVector td = { NA_REAL };
+	Rcpp::StringVector ts = { NA_STRING };
+//	Rcpp::IntegerVector ti = { NA_INTEGER };
+	Rcpp::IntegerVector iteration = Rcpp::seq(1L, iters);
+
+	Rcpp::DataFrame output = expGrid(methods, red, tseq, td, td, iteration, td, td, td, ts, Rcpp::Named("stringsAsFactors")=false);
+	output.names() = Rcpp::StringVector::create("Method", "Reduction", "ThresholdIndex", "ThresholdLower", "ThresholdUpper", "Iteration", "ObsReduction", "Stat1", "Stat2", "Typology");
+
+	// Get references to list items:
+	Rcpp::StringVector output_Method = output[0L];
+	Rcpp::DoubleVector output_Reduction = output[1L];
+	Rcpp::IntegerVector output_ThresholdIndex = output[2L];
+	Rcpp::DoubleVector output_ThresholdLower = output[3L];
+	Rcpp::DoubleVector output_ThresholdUpper = output[4L];
+	Rcpp::IntegerVector output_Iteration = output[5L];
+	Rcpp::DoubleVector output_ObsReduction = output[6L];
+	Rcpp::DoubleVector output_Stat1 = output[7L];
+	Rcpp::DoubleVector output_Stat2 = output[8L];
+	Rcpp::StringVector output_Classification = output[9L];
+
+	// Note:  Rcpp allows conversion from long long but not to double array directly
+	double conjugate_priors_db[2] = { conjugate_priors[0], conjugate_priors[1] };
+	double dobson_priors_db[2] = { dobson_priors[0], dobson_priors[1] };
+
+	// To control the row index to write to:
+	int row = 0L;
+
+	// Precalculate some things:
+	double muadj_pre = mu / k_pre;
+	double muadj_post = mu / k_post;
+	double b_pre = k_c - k_pre;
+	double b_post = k_c - k_post;
+
+	// First loop over correlation and pre-treatment datasets to simulate:
+	for(int i=0; i<iters; i++){
+		Rcpp::NumericVector gammas;
+		gammas = Rcpp::rgamma(N, k_c, 1.0);
+
+		Rcpp::IntegerVector pre_data(N);
+		long long sum_pre = 0L;
+		do {
+			sum_pre = 0L;
+			for(int i=0; i<N; i++){
+				pre_data[i] = R::rpois(R::rbeta(k_pre, b_pre) * gammas[i] * muadj_pre);
+				sum_pre += pre_data[i];
+			}
+		} while (sum_pre == 0L);
+
+		double mean_pre = Rcpp::mean(pre_data);
+		double var_pre = Rcpp::var(pre_data);
+
+		// Then loop over reductions:
+		for(int r=0; r<red.length(); r++){
+			long long sum_post = 0L;
+			Rcpp::IntegerVector post_data(N);
+			for(int i=0; i<N; i++){
+				post_data[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * red[r]);
+				sum_post += post_data[i];
+			}
+
+			double mean_post = Rcpp::mean(post_data);
+			double var_post = Rcpp::var(post_data);
+			double obsred = mean_post / mean_pre;
+
+			double cov = 0.0;
+		    for(int i=0; i<N; i++){
+				cov += (double(pre_data[i]) - mean_pre) * (double(post_data[i]) - mean_post);
+			}
+		    cov = cov / double(N - 1L);
+
+			Rcpp::NumericVector ks;
+			if(useml){
+				ks = estimate_k_ml(pre_data, mean_pre, var_pre, post_data, mean_post, var_post, cov, true);
+			}else{
+				ks = estimate_k(mean_pre, var_pre, mean_post, var_post, cov, true);
+			}
+			// Test:
+			if(!R_finite(ks[0])){
+				Rcpp::stop("Non-finite k1 generated");
+			}
+			if(ks[0] <= 0.0){
+				Rcpp::stop("k1 below 0.0 generated");
+			}
+			if(!R_finite(ks[1])){
+				Rcpp::stop("Non-finite k2 generated");
+			}
+			if(ks[1] <= 0.0){
+				Rcpp::stop("k2 below 0.0 generated");
+			}
+			double estk_pre = ks[0];
+			double estk_post = ks[1];
+
+			// For cheating:
+			//estk_pre = k_pre / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
+			//estk_post = k_post / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
+
+
+			// Then loop over thresholds:
+			for(int t=0; t<thresholds.nrow(); t++){
+
+				// This stays the same for all rows within this threshold:
+				int tind = output_ThresholdIndex[row] - 1L;
+				double th1 = thresholds(tind,0L);
+				double th2 = thresholds(tind,1L);
+
+
+				// TODO: Method should not need to be set but do as a debug check?
+
+				// Apply each test and save the results:
+
+				output_Method[row] = "BNB";
+				output_ObsReduction[row] = obsred;
+				output_ThresholdLower[row] = th1;
+				output_ThresholdUpper[row] = th2;
+				bnb_pval(sum_pre, N, estk_pre, mean_pre, var_pre, sum_post, N, estk_post, mean_post, var_post, cov, 1.0, th1, th2, conjugate_priors_db, delta, beta_iters, approx, &output_Stat1[row], &output_Stat2[row]);
+				output_Classification[row] = get_type_pv(1.0-obsred, output_Stat1[row], output_Stat2[row], tail, th1, th2);
+				row++;
+
+				output_Method[row] = "Gamma";
+				output_ObsReduction[row] = obsred;
+				output_ThresholdLower[row] = th1;
+				output_ThresholdUpper[row] = th2;
+				levecke_p_ci(mean_pre, mean_post, var_pre, var_post, cov, N, tail, &output_Stat1[row], &output_Stat2[row]);
+				output_Classification[row] = (sum_post==0) ? "100%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
+				row++;
+
+				output_Method[row] = "WAAVP";
+				output_ObsReduction[row] = obsred;
+				output_ThresholdLower[row] = th1;
+				output_ThresholdUpper[row] = th2;
+				waavp_p_ci(mean_pre, mean_post, var_pre, var_post, cov, N, tail, &output_Stat1[row], &output_Stat2[row]);
+				output_Classification[row] = (sum_post==0) ? "100%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
+				row++;
+
+				output_Method[row] = "Asymptotic";
+				output_ObsReduction[row] = obsred;
+				output_ThresholdLower[row] = th1;
+				output_ThresholdUpper[row] = th2;
+				mle_p_ci(mean_pre, mean_post, var_pre, var_post, cov, N, tail, &output_Stat1[row], &output_Stat2[row]);
+				output_Classification[row] = (sum_post==0) ? "100%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
+				row++;
+
+				output_Method[row] = "Binomial";
+				output_ObsReduction[row] = obsred;
+				output_ThresholdLower[row] = th1;
+				output_ThresholdUpper[row] = th2;
+				dobson_ci(sum_pre, sum_post, dobson_cl[0], dobson_cl[1], dobson_priors_db, &output_Stat1[row], &output_Stat2[row]);
+				output_Classification[row] = (sum_post>sum_pre) ? "<0%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
+				row++;
+
+				Rcpp::checkUserInterrupt();
+
+			}
+		}
+	}
+
+	return output;
+}
+
+
 RCPP_MODULE(rcpp_module){
 
 	using namespace Rcpp;
