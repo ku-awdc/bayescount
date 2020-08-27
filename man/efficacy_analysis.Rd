@@ -4,10 +4,21 @@
 \alias{efficacy_analysis}
 \title{efficacy_analysis}
 \usage{
-efficacy_analysis(data_1, data_2, paired, T_I = 0.99, T_A = 0.95,
-  S = c(1, 1), tail = 0.025, bnb_priors = c(0, 0), use_delta = NA,
-  beta_iters = 10^4, use_ml = TRUE, binomial_priors = c(1, 1),
-  binomial_cl_adj = 0.2)
+efficacy_analysis(
+  data_1,
+  data_2,
+  paired,
+  T_I = 0.99,
+  T_A = 0.95,
+  S = c(1, 1),
+  alpha = 0.025,
+  bnb_priors = c(0, 0),
+  use_delta = NA,
+  beta_iters = 10^4,
+  use_ml = TRUE,
+  binomial_priors = c(1, 1),
+  binomial_cl_adj = 0.2
+)
 }
 \arguments{
 \item{data_1}{either the pre-treatment or control data - should either be an integer vector, or an integer matrix with replicates from the same individual in columns}
@@ -22,7 +33,7 @@ efficacy_analysis(data_1, data_2, paired, T_I = 0.99, T_A = 0.95,
 
 \item{S}{a length-2 numeric variable giving the counting sensitivity used for control/pre-treatment and treatment/post-treatment individuals}
 
-\item{tail}{the significance level to use for the classification, where 0.025 corresponds to 95\% CI and 0.05 corresponds to 90\% CI}
+\item{alpha}{the significance level to use for the classification, where 0.025 corresponds to 95\\% CI and 0.05 corresponds to 90\\% CI}
 
 \item{bnb_priors}{priors to use for the BNB method}
 
@@ -34,7 +45,7 @@ efficacy_analysis(data_1, data_2, paired, T_I = 0.99, T_A = 0.95,
 
 \item{binomial_priors}{the priors to use for the Binomial method}
 
-\item{binomial_cl_adj}{the adjustment in confidence level to use for the Binomial method relative to the others (the default corresponds to e.g. 99\% rather than 95\% CI) - where 0 > adj >= 1}
+\item{binomial_cl_adj}{the adjustment in confidence level to use for the Binomial method relative to the others (the default corresponds to e.g. 99\\% rather than 95\\% CI) - where 0 > adj >= 1}
 }
 \value{
 A data frame with columns Method, LCI, UCI, pI, pA, Typology, and Classification

@@ -4,8 +4,14 @@
 \alias{efficacy_power}
 \title{Obtain a Monte Carlo estimation of the expected frequency of typologies associated with the given parameter values}
 \usage{
-efficacy_power(N = seq(5, 50, by = 5), method = "BNB", paired = TRUE,
-  T_I = 0.99, T_A = 0.95, ...)
+efficacy_power(
+  N = seq(5, 50, by = 5),
+  method = "BNB",
+  paired = TRUE,
+  T_I = 0.99,
+  T_A = 0.95,
+  ...
+)
 }
 \arguments{
 \item{N}{the sample sizes to examine for type 1 and 2 error rates, either as an integer vector where it is presumed that N_1 = N_2, or a 2-column matrix of paired N_1 and N_2 values to examine at each combination given by row}

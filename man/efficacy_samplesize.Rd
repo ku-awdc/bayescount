@@ -4,8 +4,15 @@
 \alias{efficacy_samplesize}
 \title{Obtain a Monte Carlo estimation of the expected frequency of typologies associated with the given parameter values}
 \usage{
-efficacy_samplesize(method = "BNB", power = 0.8, minN = 5,
-  maxN = 50, byN = 5, plot = FALSE, ...)
+efficacy_samplesize(
+  method = "BNB",
+  power = 0.8,
+  minN = 5,
+  maxN = 50,
+  byN = 5,
+  plot = FALSE,
+  ...
+)
 }
 \arguments{
 \item{method}{the statistical method(s) for which to return type 1 and type 2 error rates}

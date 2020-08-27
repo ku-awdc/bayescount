@@ -332,7 +332,7 @@ Rcpp::DataFrame typology_analysis(const int sum_1, const int sum_2, const int N_
 	// Note:  Rcpp allows conversion from long long but not to double array directly
 	double conjugate_priors_db[2] = { conjugate_priors[0], conjugate_priors[1] };
 	double dobson_priors_db[2] = { dobson_priors[0], dobson_priors[1] };
-	
+
 	const double mean_1 = static_cast<double>(sum_1) / static_cast<double>(N_1);
 	const double var_1 = mean_1 + (mean_1*mean_1) / k_1;
 	const double mean_2 = static_cast<double>(sum_2) / static_cast<double>(N_2);
@@ -342,13 +342,13 @@ Rcpp::DataFrame typology_analysis(const int sum_1, const int sum_2, const int N_
 
 	double cov = 0.0;
 	if(paired)
-	{		
+	{
 	    cov = cor * std::sqrt(var_1) * std::sqrt(var_2);
 	}
 	Rcpp::NumericVector ks = estimate_k(mean_1, var_1, mean_2, var_2, cov, true);
-	
+
 	int row = 0L;
-	
+
 	output_Method[row] = "BNB";
 	bnb_pval(sum_1, N_1, ks[0L], mean_1, var_1, sum_2, N_2, ks[1L], mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
 	output_Classification[row] = get_type_pv(1.0-obsred, output_pA[row], output_pI[row], tail, H0_A, H0_I);
@@ -426,7 +426,7 @@ Rcpp::DataFrame efficacy_frequencies_unpaired(const int iters, const Rcpp::Numer
 		}
 	}
 	// Check that N has 2 columns and >0 rows:
-	
+
 
 	// Use the expand.grid R function:
 	Rcpp::Function expGrid("expand.grid");
@@ -773,13 +773,15 @@ Rcpp::DataFrame efficacy_frequencies_paired(int iters, Rcpp::NumericVector red, 
 // TODO: power_matrix_unpaired
 
 
-Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector N, Rcpp::NumericVector nim, double target, double mu, double k_pre, double k_post, double k_c, int iters, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
+Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector margin, double target, double mu, double k_pre, double k_post, double k_c, int iters, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
 {
 
+	// TODO: constification
+
 	// Check that all nim are >0:
-	for(int i=0; i<nim.length(); ++i)
+	for(int i=0; i<margin.length(); ++i)
 	{
-		if(nim[i] <= 0.0)
+		if(margin[i] <= 0.0)
 		{
 			Rcpp::stop("The non-inferiority margin must be strictly positive");
 		}
@@ -790,75 +792,172 @@ Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector N, Rcpp::NumericVector n
 		Rcpp::stop("k_c must be larger than k_pre and k_post");
 	}
 
-	// TODO: tidy up check and error:
-	if((double(N)*double(mu)) > (0.1 * INT_MAX)){
+	// N must be small to large:
+	std::sort(Ns.begin(), Ns.end());
+	const int maxN = Rcpp::max(Ns);
+	if((double(maxN)*double(mu)) > (0.1 * INT_MAX)){
 		Rcpp::stop("Possible int overflow");
 	}
 
 	// Use the expand.grid R function:
 	Rcpp::Function expGrid("expand.grid");
 
-	Rcpp::StringVector methods = { "BNB", "Gamma", "WAAVP", "Asymptotic", "Binomial" };
-	Rcpp::IntegerVector tseq = Rcpp::seq(1L, thresholds.nrow());
 	Rcpp::DoubleVector td = { NA_REAL };
 	Rcpp::StringVector ts = { NA_STRING };
+	Rcpp::LogicalVector tl = Rcpp::LogicalVector::create( NA_LOGICAL );
 //	Rcpp::IntegerVector ti = { NA_INTEGER };
 	Rcpp::IntegerVector iteration = Rcpp::seq(1L, iters);
+	Rcpp::StringVector hs = { "Efficacy", "Resistance" };
 
-	Rcpp::DataFrame output = expGrid(methods, red, tseq, td, td, iteration, td, td, td, ts, Rcpp::Named("stringsAsFactors")=false);
-	output.names() = Rcpp::StringVector::create("Method", "Reduction", "ThresholdIndex", "ThresholdLower", "ThresholdUpper", "Iteration", "ObsReduction", "Stat1", "Stat2", "Typology");
+	// The ordering is important here:  hypothesis must change fastest (use same dataset), then N (same dataset subselected to maxN), then margin/reduction (use same pre-tx dataset), then iteration (resimulate)
+	Rcpp::DataFrame output = expGrid(hs, Ns, target, margin, td, iteration, td, td, td, ts, tl, Rcpp::Named("stringsAsFactors")=false);
+	output.names() = Rcpp::StringVector::create("Hypothesis", "N", "Target", "Margin", "Reduction", "Iteration", "ObsReduction", "Stat1", "Stat2", "Typology", "RejectH0");
 
 	// Get references to list items:
-	Rcpp::StringVector output_Method = output[0L];
-	Rcpp::DoubleVector output_Reduction = output[1L];
-	Rcpp::IntegerVector output_ThresholdIndex = output[2L];
-	Rcpp::DoubleVector output_ThresholdLower = output[3L];
-	Rcpp::DoubleVector output_ThresholdUpper = output[4L];
+	Rcpp::StringVector output_Hypothesis = output[0L];
+	Rcpp::IntegerVector output_Ns = output[1L];
+	Rcpp::DoubleVector output_Target = output[2L];
+	Rcpp::DoubleVector output_Margin = output[3L];
+	Rcpp::DoubleVector output_Reduction = output[4L];
 	Rcpp::IntegerVector output_Iteration = output[5L];
 	Rcpp::DoubleVector output_ObsReduction = output[6L];
 	Rcpp::DoubleVector output_Stat1 = output[7L];
 	Rcpp::DoubleVector output_Stat2 = output[8L];
-	Rcpp::StringVector output_Classification = output[9L];
+	Rcpp::StringVector output_Typology = output[9L];
+	Rcpp::LogicalVector output_RejectH0 = output[10L];
 
 	// Note:  Rcpp allows conversion from long long but not to double array directly
 	double conjugate_priors_db[2] = { conjugate_priors[0], conjugate_priors[1] };
-	double dobson_priors_db[2] = { dobson_priors[0], dobson_priors[1] };
 
 	// To control the row index to write to:
 	int row = 0L;
 
 	// Precalculate some things:
-	double muadj_pre = mu / k_pre;
-	double muadj_post = mu / k_post;
-	double b_pre = k_c - k_pre;
-	double b_post = k_c - k_post;
+	const double muadj_pre = mu / k_pre;
+	const double muadj_post = mu / k_post;
+	const double b_pre = k_c - k_pre;
+	const double b_post = k_c - k_post;
 
-	// First loop over correlation and pre-treatment datasets to simulate:
-	for(int i=0; i<iters; i++){
+	const double target_red = 1.0 - target;
+
+	// First loop over iterations to simulate one pre-treatment dataset common to all margins and N:
+	for(int it=0; it<iters; ++it){
+
 		Rcpp::NumericVector gammas;
-		gammas = Rcpp::rgamma(N, k_c, 1.0);
+		gammas = Rcpp::rgamma(maxN, k_c, 1.0);
 
-		Rcpp::IntegerVector pre_data(N);
-		long long sum_pre = 0L;
+		Rcpp::IntegerVector pre_full(maxN);
 		do {
-			sum_pre = 0L;
-			for(int i=0; i<N; i++){
-				pre_data[i] = R::rpois(R::rbeta(k_pre, b_pre) * gammas[i] * muadj_pre);
-				sum_pre += pre_data[i];
+			for(int i=0; i<maxN; i++){
+				pre_full[i] = R::rpois(R::rbeta(k_pre, b_pre) * gammas[i] * muadj_pre);
 			}
-		} while (sum_pre == 0L);
+		} while (pre_full[0L] == 0L);  // Hack to make sure all possible sample sizes have sum > 0
 
-		double mean_pre = Rcpp::mean(pre_data);
-		double var_pre = Rcpp::var(pre_data);
+		// Then create a single post-treatment dataset for efficacious reductions (fixed over margins):
+		Rcpp::IntegerVector post_full_sus(maxN);
+		for(int i=0; i<maxN; i++){
+			post_full_sus[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * target_red);
+		}
+		// TODO: use accumulating algorithm for calculating mean/var/sum eficiently
+		// TODO: loop over sample sizes here to calculate pre-treatment (and post-treatment efficacious) means and vars once
+		// double mean_pre = Rcpp::mean(pre_data);
+		// double var_pre = Rcpp::var(pre_data);
 
-		// Then loop over reductions:
-		for(int r=0; r<red.length(); r++){
-			long long sum_post = 0L;
-			Rcpp::IntegerVector post_data(N);
-			for(int i=0; i<N; i++){
-				post_data[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * red[r]);
-				sum_post += post_data[i];
+		// Then loop over margins (and therefore resistant reductions):
+		for(int m=0; m<margin.length(); ++m){
+
+			const double red = target_red + margin[m];
+
+			// Then create the post-treatment data for reduced reductions:
+			Rcpp::IntegerVector post_full_res(maxN);
+			for(int i=0; i<maxN; i++){
+				post_full_res[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * red);
 			}
+			// TODO: use accumulating algorithm for calculating mean/var/sum eficiently
+			// TODO: loop over sample sizes here to calculate pre-treatment (and post-treatment efficacious) means and vars once
+			// double mean_pre = Rcpp::mean(pre_data);
+			// double var_pre = Rcpp::var(pre_data);
+
+			// Then loop over sample sizes:
+			for(int n=0; n<Ns.length(); ++n){
+
+				const int N = Ns[n];
+
+				// Indices to use for this sample size:
+				// Rcpp::IntegerVector idx = Rcpp::seq(0L, N-1L);
+				// TODO: work out how to subset vectors rather than copying
+
+				Rcpp::IntegerVector pre_data(N);
+				Rcpp::IntegerVector post_data(N);
+				std::copy(pre_full.begin(), pre_full.begin()+N, pre_data.begin());
+
+				// TODO: use once-calculated values here (or is LLVM smart enough to do this for me?!?):
+				double mean_pre = Rcpp::mean(pre_data);
+				double var_pre = Rcpp::var(pre_data);
+
+				// Then loop over hypotheses:
+				for(int h=0L; h<2L; ++h)
+				{
+					if(h==0L){
+						// Hypothesis for efficacy comes first:
+						std::copy(post_full_sus.begin(), post_full_sus.begin()+N, post_data.begin());
+					}else{
+						// Hypothesis for resistance comes second:
+						std::copy(post_full_res.begin(), post_full_res.begin()+N, post_data.begin());
+					}
+					
+					double mean_post = Rcpp::mean(post_data);
+					double var_post = Rcpp::var(post_data);
+					double obsred = mean_post / mean_pre;
+
+					double cov = 0.0;
+
+					long long sum_pre = 0L;
+					long long sum_post = 0L;
+				    for(int i=0; i<N; i++){
+						cov += (double(pre_data[i]) - mean_pre) * (double(post_data[i]) - mean_post);
+						sum_pre += pre_data[i];
+						sum_post += post_data[i];
+					}
+				    cov = cov / double(N - 1L);
+
+					Rcpp::NumericVector ks;
+					if(useml){
+						ks = estimate_k_ml(pre_data, mean_pre, var_pre, post_data, mean_post, var_post, cov, true);
+					}else{
+						ks = estimate_k(mean_pre, var_pre, mean_post, var_post, cov, true);
+					}
+					double estk_pre = ks[0];
+					double estk_post = ks[1];
+					
+					const double th1 = target - margin[m];
+					const double th2 = target;
+					
+					bnb_pval(sum_pre, N, estk_pre, mean_pre, var_pre, sum_post, N, estk_post, mean_post, var_post, cov, 1.0, th1, th2, conjugate_priors_db, delta, beta_iters, approx, &output_Stat1[row], &output_Stat2[row]);
+					output_Typology[row] = get_type_pv(1.0-obsred, output_Stat1[row], output_Stat2[row], tail, th1, th2);
+
+					// Record the reduction etc:
+					output_ObsReduction[row] = obsred;
+
+					// Record if the relevant hypothesis has been rejected:
+					if(h==0L){
+						// Hypothesis for efficacy comes first:
+						output_RejectH0[row] = output_Stat1[row] <= tail;
+						output_Reduction[row] = red;
+					}else{
+						// Hypothesis for resistance comes second:
+						output_RejectH0[row] = output_Stat2[row] <= tail;
+						output_Reduction[row] = target_red;
+					}
+
+					// Increment the row number:
+					row++;
+				}
+			}
+		}
+	}
+
+	/*
 
 			double mean_post = Rcpp::mean(post_data);
 			double var_post = Rcpp::var(post_data);
@@ -955,6 +1054,7 @@ Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector N, Rcpp::NumericVector n
 			}
 		}
 	}
+	*/
 
 	return output;
 }
@@ -968,5 +1068,6 @@ RCPP_MODULE(rcpp_module){
 	function("RCPP_typology_analysis", &typology_analysis);
 	function("RCPP_efficacy_frequencies_paired", &efficacy_frequencies_paired);
 	function("RCPP_efficacy_frequencies_unpaired", &efficacy_frequencies_unpaired);
+	function("RCPP_power_matrix_paired", &power_matrix_paired);
 
 }
