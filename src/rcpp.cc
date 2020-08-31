@@ -1,4 +1,5 @@
 #include "Rcpp.h"
+#include <algorithm>  // std::random_shuffle
 
 #include "fecrt.h"
 
@@ -880,6 +881,12 @@ Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector 
 
 			// Then loop over sample sizes:
 			for(int n=0; n<Ns.length(); ++n){
+				
+				///*
+				std::random_shuffle(pre_full.begin(), pre_full.end());
+				std::random_shuffle(post_full_sus.begin(), post_full_sus.end());
+				std::random_shuffle(post_full_res.begin(), post_full_res.end());
+				//*/
 
 				const int N = Ns[n];
 
