@@ -408,6 +408,8 @@ Rcpp::DataFrame typology_analysis(const int sum_1, const int sum_2, const int N_
 Rcpp::DataFrame efficacy_frequencies_unpaired(const int iters, const Rcpp::NumericVector red, const int N_ctl, const int N_tx, const double mu, const double k_tx, const double k_ctl, const Rcpp::NumericMatrix thresholds, const Rcpp::NumericVector conjugate_priors, const int delta, const int beta_iters, const int approx, const double tail, const bool useml)
 {
 
+	// Note: k_pre and k_post are the correlated k - I think - check!!!
+	
 	// Check that the thresholds have 2 columns and >0 rows:
 	if(thresholds.ncol() != 2){
 		Rcpp::stop("There must be exactly 2 columns");
@@ -577,6 +579,8 @@ Rcpp::DataFrame efficacy_frequencies_unpaired(const int iters, const Rcpp::Numer
 Rcpp::DataFrame efficacy_frequencies_paired(int iters, Rcpp::NumericVector red, int N, double mu, double k_pre, double k_post, double k_c, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
 {
 
+	// Note: k_pre and k_post are the correlated k - I think - check!!!
+	
 	// Check that the thresholds have 2 columns and >0 rows:
 	if(thresholds.ncol() != 2){
 		Rcpp::stop("There must be exactly 2 columns");
@@ -774,8 +778,10 @@ Rcpp::DataFrame efficacy_frequencies_paired(int iters, Rcpp::NumericVector red, 
 // TODO: power_matrix_unpaired
 
 
-Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector margin, double target, double mu, double k_pre, double k_post, double k_c, int iters, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml)
+Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector margin, Rcpp::NumericVector mu, double target, double k_pre, double k_post, double k_c, int iters, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, int useml)
 {
+
+	// Note: k_pre and k_post are the correlated k - I think - check!!!
 
 	// TODO: constification
 
@@ -796,7 +802,7 @@ Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector 
 	// N must be small to large:
 	std::sort(Ns.begin(), Ns.end());
 	const int maxN = Rcpp::max(Ns);
-	if((double(maxN)*double(mu)) > (0.1 * INT_MAX)){
+	if((double(maxN)*Rcpp::max(mu)) > (0.1 * INT_MAX)){
 		Rcpp::stop("Possible int overflow");
 	}
 
@@ -810,9 +816,9 @@ Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector 
 	Rcpp::IntegerVector iteration = Rcpp::seq(1L, iters);
 	Rcpp::StringVector hs = { "Efficacy", "Resistance" };
 
-	// The ordering is important here:  hypothesis must change fastest (use same dataset), then N (same dataset subselected to maxN), then margin/reduction (use same pre-tx dataset), then iteration (resimulate)
-	Rcpp::DataFrame output = expGrid(hs, Ns, target, margin, td, iteration, td, td, td, ts, tl, Rcpp::Named("stringsAsFactors")=false);
-	output.names() = Rcpp::StringVector::create("Hypothesis", "N", "Target", "Margin", "Reduction", "Iteration", "ObsReduction", "Stat1", "Stat2", "Typology", "RejectH0");
+	// The ordering is important here:  hypothesis must change fastest (use same dataset), then N (same dataset subselected to maxN), then margin/reduction (use same pre-tx dataset), then iteration (resimulate), then mu (recalculate muadj etc)
+	Rcpp::DataFrame output = expGrid(hs, Ns, target, margin, td, iteration, mu, td, td, td, ts, tl, Rcpp::Named("stringsAsFactors")=false);
+	output.names() = Rcpp::StringVector::create("Hypothesis", "N", "Target", "Margin", "Reduction", "Iteration", "Mean", "ObsReduction", "Stat1", "Stat2", "Typology", "RejectH0");
 
 	// Get references to list items:
 	Rcpp::StringVector output_Hypothesis = output[0L];
@@ -820,248 +826,165 @@ Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector 
 	Rcpp::DoubleVector output_Target = output[2L];
 	Rcpp::DoubleVector output_Margin = output[3L];
 	Rcpp::DoubleVector output_Reduction = output[4L];
-	Rcpp::IntegerVector output_Iteration = output[5L];
-	Rcpp::DoubleVector output_ObsReduction = output[6L];
-	Rcpp::DoubleVector output_Stat1 = output[7L];
-	Rcpp::DoubleVector output_Stat2 = output[8L];
-	Rcpp::StringVector output_Typology = output[9L];
-	Rcpp::LogicalVector output_RejectH0 = output[10L];
+	Rcpp::IntegerVector output_Mean = output[5L];
+	Rcpp::IntegerVector output_Iteration = output[6L];
+	Rcpp::DoubleVector output_ObsReduction = output[7L];
+	Rcpp::DoubleVector output_Stat1 = output[8L];
+	Rcpp::DoubleVector output_Stat2 = output[9L];
+	Rcpp::StringVector output_Typology = output[10L];
+	Rcpp::LogicalVector output_RejectH0 = output[11L];
 
 	// Note:  Rcpp allows conversion from long long but not to double array directly
 	double conjugate_priors_db[2] = { conjugate_priors[0], conjugate_priors[1] };
 
+	// Precalculate some things:
+	const double b_pre = k_c - k_pre;
+	const double b_post = k_c - k_post;
+	const double target_red = 1.0 - target;
+
+	// For use with useml==0L (will be overwritten for other useml):
+	Rcpp::DoubleVector ks = { k_pre, k_post };
+
 	// To control the row index to write to:
 	int row = 0L;
 
-	// Precalculate some things:
-	const double muadj_pre = mu / k_pre;
-	const double muadj_post = mu / k_post;
-	const double b_pre = k_c - k_pre;
-	const double b_post = k_c - k_post;
+	// First loop over mus:
+	for(int u=0; u<mu.length(); ++u)
+	{
 
-	const double target_red = 1.0 - target;
+		// Precalculate some things for this mu:
+		const double muadj_pre = mu[u] / k_pre;
+		const double muadj_post = mu[u] / k_post;
 
-	// First loop over iterations to simulate one pre-treatment dataset common to all margins and N:
-	for(int it=0; it<iters; ++it){
+		// Then loop over iterations to simulate one pre-treatment dataset common to all margins and N:
+		for(int it=0; it<iters; ++it){
+			
+			Rcpp::checkUserInterrupt();
 
-		Rcpp::NumericVector gammas;
-		gammas = Rcpp::rgamma(maxN, k_c, 1.0);
+			Rcpp::NumericVector gammas;
+			gammas = Rcpp::rgamma(maxN, k_c, 1.0);
 
-		Rcpp::IntegerVector pre_full(maxN);
-		do {
+			Rcpp::IntegerVector pre_full(maxN);
+			do {
+				for(int i=0; i<maxN; i++){
+					pre_full[i] = R::rpois(R::rbeta(k_pre, b_pre) * gammas[i] * muadj_pre);
+				}
+			} while (pre_full[0L] == 0L);  // Hack to make sure all possible sample sizes have sum > 0
+
+			// Then create a single post-treatment dataset for efficacious reductions (fixed over margins):
+			Rcpp::IntegerVector post_full_sus(maxN);
 			for(int i=0; i<maxN; i++){
-				pre_full[i] = R::rpois(R::rbeta(k_pre, b_pre) * gammas[i] * muadj_pre);
-			}
-		} while (pre_full[0L] == 0L);  // Hack to make sure all possible sample sizes have sum > 0
-
-		// Then create a single post-treatment dataset for efficacious reductions (fixed over margins):
-		Rcpp::IntegerVector post_full_sus(maxN);
-		for(int i=0; i<maxN; i++){
-			post_full_sus[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * target_red);
-		}
-		// TODO: use accumulating algorithm for calculating mean/var/sum eficiently
-		// TODO: loop over sample sizes here to calculate pre-treatment (and post-treatment efficacious) means and vars once
-		// double mean_pre = Rcpp::mean(pre_data);
-		// double var_pre = Rcpp::var(pre_data);
-
-		// Then loop over margins (and therefore resistant reductions):
-		for(int m=0; m<margin.length(); ++m){
-
-			const double red = target_red + margin[m];
-
-			// Then create the post-treatment data for reduced reductions:
-			Rcpp::IntegerVector post_full_res(maxN);
-			for(int i=0; i<maxN; i++){
-				post_full_res[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * red);
+				post_full_sus[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * target_red);
 			}
 			// TODO: use accumulating algorithm for calculating mean/var/sum eficiently
 			// TODO: loop over sample sizes here to calculate pre-treatment (and post-treatment efficacious) means and vars once
 			// double mean_pre = Rcpp::mean(pre_data);
 			// double var_pre = Rcpp::var(pre_data);
 
-			// Then loop over sample sizes:
-			for(int n=0; n<Ns.length(); ++n){
-				
-				///*
-				std::random_shuffle(pre_full.begin(), pre_full.end());
-				std::random_shuffle(post_full_sus.begin(), post_full_sus.end());
-				std::random_shuffle(post_full_res.begin(), post_full_res.end());
-				//*/
+			// Then loop over margins (and therefore resistant reductions):
+			for(int m=0; m<margin.length(); ++m){
 
-				const int N = Ns[n];
+				const double red = target_red + margin[m];
 
-				// Indices to use for this sample size:
-				// Rcpp::IntegerVector idx = Rcpp::seq(0L, N-1L);
-				// TODO: work out how to subset vectors rather than copying
+				// Then create the post-treatment data for reduced reductions:
+				Rcpp::IntegerVector post_full_res(maxN);
+				for(int i=0; i<maxN; i++){
+					post_full_res[i] = R::rpois(R::rbeta(k_post, b_post) * gammas[i] * muadj_post * red);
+				}
+				// TODO: use accumulating algorithm for calculating mean/var/sum eficiently
+				// TODO: loop over sample sizes here to calculate pre-treatment (and post-treatment efficacious) means and vars once
+				// double mean_pre = Rcpp::mean(pre_data);
+				// double var_pre = Rcpp::var(pre_data);
 
-				Rcpp::IntegerVector pre_data(N);
-				Rcpp::IntegerVector post_data(N);
-				std::copy(pre_full.begin(), pre_full.begin()+N, pre_data.begin());
+				// Then loop over sample sizes:
+				for(int n=0; n<Ns.length(); ++n){
 
-				// TODO: use once-calculated values here (or is LLVM smart enough to do this for me?!?):
-				double mean_pre = Rcpp::mean(pre_data);
-				double var_pre = Rcpp::var(pre_data);
+					/*
+					std::random_shuffle(pre_full.begin(), pre_full.end());
+					std::random_shuffle(post_full_sus.begin(), post_full_sus.end());
+					std::random_shuffle(post_full_res.begin(), post_full_res.end());
+					*/
 
-				// Then loop over hypotheses:
-				for(int h=0L; h<2L; ++h)
-				{
-					if(h==0L){
-						// Hypothesis for efficacy comes first:
-						std::copy(post_full_sus.begin(), post_full_sus.begin()+N, post_data.begin());
-					}else{
-						// Hypothesis for resistance comes second:
-						std::copy(post_full_res.begin(), post_full_res.begin()+N, post_data.begin());
+					const int N = Ns[n];
+
+					// Indices to use for this sample size:
+					// Rcpp::IntegerVector idx = Rcpp::seq(0L, N-1L);
+					// TODO: work out how to subset vectors rather than copying
+
+					Rcpp::IntegerVector pre_data(N);
+					Rcpp::IntegerVector post_data(N);
+					std::copy(pre_full.begin(), pre_full.begin()+N, pre_data.begin());
+
+					// TODO: use once-calculated values here (or is LLVM smart enough to do this for me?!?):
+					double mean_pre = Rcpp::mean(pre_data);
+					double var_pre = Rcpp::var(pre_data);
+
+					// Then loop over hypotheses:
+					for(int h=0L; h<2L; ++h)
+					{
+						if(h==0L){
+							// Hypothesis for efficacy comes first:
+							std::copy(post_full_sus.begin(), post_full_sus.begin()+N, post_data.begin());
+						}else{
+							// Hypothesis for resistance comes second:
+							std::copy(post_full_res.begin(), post_full_res.begin()+N, post_data.begin());
+						}
+
+						double mean_post = Rcpp::mean(post_data);
+						double var_post = Rcpp::var(post_data);
+						double obsred = mean_post / mean_pre;
+
+						double cov = 0.0;
+
+						long long sum_pre = 0L;
+						long long sum_post = 0L;
+					    for(int i=0; i<N; i++){
+							cov += (double(pre_data[i]) - mean_pre) * (double(post_data[i]) - mean_post);
+							sum_pre += pre_data[i];
+							sum_post += post_data[i];
+						}
+					    cov = cov / double(N - 1L);
+
+						// useml is either 0 (use known k), 1 (use faster approximation to estimate) or 2 (use actual ml to estimate)
+						if(useml==0L){
+							// Note: do nothing here for useml==0L
+						}else if(useml==1L){
+							ks = estimate_k(mean_pre, var_pre, mean_post, var_post, cov, true);
+						}else if(useml==2L){
+							ks = estimate_k_ml(pre_data, mean_pre, var_pre, post_data, mean_post, var_post, cov, true);
+						}else{
+							Rcpp::stop("Unrecognised useml value");
+						}
+						double estk_pre = ks[0];
+						double estk_post = ks[1];
+
+						const double th1 = target - margin[m];
+						const double th2 = target;
+
+						bnb_pval(sum_pre, N, estk_pre, mean_pre, var_pre, sum_post, N, estk_post, mean_post, var_post, cov, 1.0, th1, th2, conjugate_priors_db, delta, beta_iters, approx, &output_Stat1[row], &output_Stat2[row]);
+						output_Typology[row] = get_type_pv(1.0-obsred, output_Stat1[row], output_Stat2[row], tail, th1, th2);
+
+						// Record the reduction etc:
+						output_ObsReduction[row] = obsred;
+
+						// Record if the relevant hypothesis has been rejected:
+						if(h==0L){
+							// Hypothesis for efficacy comes first:
+							output_RejectH0[row] = output_Stat1[row] <= tail;
+							output_Reduction[row] = red;
+						}else{
+							// Hypothesis for resistance comes second:
+							output_RejectH0[row] = output_Stat2[row] <= tail;
+							output_Reduction[row] = target_red;
+						}
+
+						// Increment the row number:
+						row++;
 					}
-					
-					double mean_post = Rcpp::mean(post_data);
-					double var_post = Rcpp::var(post_data);
-					double obsred = mean_post / mean_pre;
-
-					double cov = 0.0;
-
-					long long sum_pre = 0L;
-					long long sum_post = 0L;
-				    for(int i=0; i<N; i++){
-						cov += (double(pre_data[i]) - mean_pre) * (double(post_data[i]) - mean_post);
-						sum_pre += pre_data[i];
-						sum_post += post_data[i];
-					}
-				    cov = cov / double(N - 1L);
-
-					Rcpp::NumericVector ks;
-					if(useml){
-						ks = estimate_k_ml(pre_data, mean_pre, var_pre, post_data, mean_post, var_post, cov, true);
-					}else{
-						ks = estimate_k(mean_pre, var_pre, mean_post, var_post, cov, true);
-					}
-					double estk_pre = ks[0];
-					double estk_post = ks[1];
-					
-					const double th1 = target - margin[m];
-					const double th2 = target;
-					
-					bnb_pval(sum_pre, N, estk_pre, mean_pre, var_pre, sum_post, N, estk_post, mean_post, var_post, cov, 1.0, th1, th2, conjugate_priors_db, delta, beta_iters, approx, &output_Stat1[row], &output_Stat2[row]);
-					output_Typology[row] = get_type_pv(1.0-obsred, output_Stat1[row], output_Stat2[row], tail, th1, th2);
-
-					// Record the reduction etc:
-					output_ObsReduction[row] = obsred;
-
-					// Record if the relevant hypothesis has been rejected:
-					if(h==0L){
-						// Hypothesis for efficacy comes first:
-						output_RejectH0[row] = output_Stat1[row] <= tail;
-						output_Reduction[row] = red;
-					}else{
-						// Hypothesis for resistance comes second:
-						output_RejectH0[row] = output_Stat2[row] <= tail;
-						output_Reduction[row] = target_red;
-					}
-
-					// Increment the row number:
-					row++;
 				}
 			}
 		}
 	}
-
-	/*
-
-			double mean_post = Rcpp::mean(post_data);
-			double var_post = Rcpp::var(post_data);
-			double obsred = mean_post / mean_pre;
-
-			double cov = 0.0;
-		    for(int i=0; i<N; i++){
-				cov += (double(pre_data[i]) - mean_pre) * (double(post_data[i]) - mean_post);
-			}
-		    cov = cov / double(N - 1L);
-
-			Rcpp::NumericVector ks;
-			if(useml){
-				ks = estimate_k_ml(pre_data, mean_pre, var_pre, post_data, mean_post, var_post, cov, true);
-			}else{
-				ks = estimate_k(mean_pre, var_pre, mean_post, var_post, cov, true);
-			}
-			// Test:
-			if(!R_finite(ks[0])){
-				Rcpp::stop("Non-finite k1 generated");
-			}
-			if(ks[0] <= 0.0){
-				Rcpp::stop("k1 below 0.0 generated");
-			}
-			if(!R_finite(ks[1])){
-				Rcpp::stop("Non-finite k2 generated");
-			}
-			if(ks[1] <= 0.0){
-				Rcpp::stop("k2 below 0.0 generated");
-			}
-			double estk_pre = ks[0];
-			double estk_post = ks[1];
-
-			// For cheating:
-			//estk_pre = k_pre / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
-			//estk_post = k_post / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
-
-
-			// Then loop over thresholds:
-			for(int t=0; t<thresholds.nrow(); t++){
-
-				// This stays the same for all rows within this threshold:
-				int tind = output_ThresholdIndex[row] - 1L;
-				double th1 = thresholds(tind,0L);
-				double th2 = thresholds(tind,1L);
-
-
-				// TODO: Method should not need to be set but do as a debug check?
-
-				// Apply each test and save the results:
-
-				output_Method[row] = "BNB";
-				output_ObsReduction[row] = obsred;
-				output_ThresholdLower[row] = th1;
-				output_ThresholdUpper[row] = th2;
-				bnb_pval(sum_pre, N, estk_pre, mean_pre, var_pre, sum_post, N, estk_post, mean_post, var_post, cov, 1.0, th1, th2, conjugate_priors_db, delta, beta_iters, approx, &output_Stat1[row], &output_Stat2[row]);
-				output_Classification[row] = get_type_pv(1.0-obsred, output_Stat1[row], output_Stat2[row], tail, th1, th2);
-				row++;
-
-				output_Method[row] = "Gamma";
-				output_ObsReduction[row] = obsred;
-				output_ThresholdLower[row] = th1;
-				output_ThresholdUpper[row] = th2;
-				levecke_p_ci(mean_pre, mean_post, var_pre, var_post, cov, N, tail, &output_Stat1[row], &output_Stat2[row]);
-				output_Classification[row] = (sum_post==0) ? "100%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
-				row++;
-
-				output_Method[row] = "WAAVP";
-				output_ObsReduction[row] = obsred;
-				output_ThresholdLower[row] = th1;
-				output_ThresholdUpper[row] = th2;
-				waavp_p_ci(mean_pre, mean_post, var_pre, var_post, cov, N, tail, &output_Stat1[row], &output_Stat2[row]);
-				output_Classification[row] = (sum_post==0) ? "100%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
-				row++;
-
-				output_Method[row] = "Asymptotic";
-				output_ObsReduction[row] = obsred;
-				output_ThresholdLower[row] = th1;
-				output_ThresholdUpper[row] = th2;
-				mle_p_ci(mean_pre, mean_post, var_pre, var_post, cov, N, tail, &output_Stat1[row], &output_Stat2[row]);
-				output_Classification[row] = (sum_post==0) ? "100%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
-				row++;
-
-				output_Method[row] = "Binomial";
-				output_ObsReduction[row] = obsred;
-				output_ThresholdLower[row] = th1;
-				output_ThresholdUpper[row] = th2;
-				dobson_ci(sum_pre, sum_post, dobson_cl[0], dobson_cl[1], dobson_priors_db, &output_Stat1[row], &output_Stat2[row]);
-				output_Classification[row] = (sum_post>sum_pre) ? "<0%red" : get_type_ci(1.0-obsred, output_Stat1[row], output_Stat2[row], th1, th2);
-				row++;
-
-				Rcpp::checkUserInterrupt();
-
-			}
-		}
-	}
-	*/
 
 	return output;
 }
