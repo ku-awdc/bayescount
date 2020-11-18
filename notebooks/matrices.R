@@ -1,26 +1,134 @@
 library('tidyverse')
 library('bayescount')
 
+# devtools::install_github("ropensci/writexl")
+library("writexl")
+
 theme_set(theme_light())
 
-numbers <- read_csv("/Users/matthewdenwood/Documents/Research/Projects/WAAVP/Power paper/analyses/median_numbers.csv")
+bioparameters <- read_csv("/Users/matthewdenwood/Documents/Research/Projects/WAAVP/Power paper/analyses/median_numbers.csv") %>%
+	select(Host, Parasite, muQ1, muQ2, muQ3, k1, k2, cor = correlation) %>%
+	filter(! Parasite %in% c("Ascaris","Trichuris")) %>%
+	mutate(Host = case_when( Host == "Foal" ~ "Equine", TRUE ~ Host))
 
-numbers %>%
-	mutate(kr = k2/k1) %>%
-	summarise(kr = mean(kr, na.rm=TRUE), correlation = mean(correlation, na.rm=TRUE))
+drugparameters <- tribble(~Host, ~Parasite, ~Drug, ~Protocol, ~Target, ~Lower,
+													"Calf", "Nematodes", "All", "Clinical", 99, 90,
+													"Calf", "Nematodes", "All", "Research", 99, 95,
+													"Sheep", "Nematodes", "All", "Clinical", 99, 90,
+													"Sheep", "Nematodes", "All", "Research", 99, 95,
+													"Equine", "Nematodes", "ML", "Clinical", 99.9, 92,
+													"Equine", "Nematodes", "ML", "Research", 99.9, 96,
+													"Equine", "Nematodes", "BZ", "Clinical", 99, 90,
+													"Equine", "Nematodes", "BZ", "Research", 99, 95,
+													"Equine", "Nematodes", "Pyrantel", "Clinical-1", 98, 80,
+													"Equine", "Nematodes", "Pyrantel", "Clinical-2", 98, 85,
+													"Equine", "Nematodes", "Pyrantel", "Research-1", 98, 88,
+													"Equine", "Nematodes", "Pyrantel", "Research-2", 98, 90,
+													"Equine", "Ascarid", "All", "Clinical-1", 99, 90,
+													"Equine", "Ascarid", "All", "Clinical-2", 99.9, 92,
+													"Equine", "Ascarid", "All", "Research-1", 99, 95,
+													"Equine", "Ascarid", "All", "Research-2", 99.9, 96,
+													"Pig", "Oesophagostomum", "IVM", "Clinical-1", 90, 75,
+													"Pig", "Oesophagostomum", "IVM", "Clinical-2", 95, 80,
+													"Pig", "Oesophagostomum", "IVM", "Clinical-3", 95, 85,
+													"Pig", "Oesophagostomum", "IVM", "Research-1", 90, 80,
+													"Pig", "Oesophagostomum", "IVM", "Research-2", 95, 85,
+													"Pig", "Oesophagostomum", "IVM", "Research-3", 95, 90,
+													"Pig", "Oesophagostomum", "BZ", "Clinical-1", 98, 88,
+													"Pig", "Oesophagostomum", "BZ", "Clinical-2", 98, 90,
+													"Pig", "Oesophagostomum", "BZ", "Research-1", 98, 93,
+													"Pig", "Oesophagostomum", "BZ", "Research-2", 98, 95,
+)
 
-# Fill in numbers for Ascaris and Trichuris:
-numbers <- numbers %>%
-	mutate(k2 = case_when(
-		!is.na(k2) ~ k2,
-		TRUE ~ k1 * 0.9
-	)) %>%
-	mutate(correlation = case_when(
-		!is.na(correlation) ~ correlation,
-		TRUE ~ 0.3
-	)) %>%
-	rowid_to_column()
-numbers
+meanparameters <- tribble(~Host, ~Parasite, ~Mean,
+													"Calf", "Nematodes", 40,
+													"Calf", "Nematodes", 15,
+													"Calf", "Nematodes", 8,
+													"Sheep", "Nematodes", 40,
+													"Sheep", "Nematodes", 15,
+													"Sheep", "Nematodes", 8,
+													"Equine", "Nematodes", 40,
+													"Equine", "Nematodes", 15,
+													"Equine", "Nematodes", 8,
+													"Equine", "Ascarid", 40,
+													"Equine", "Ascarid", 15,
+													"Equine", "Ascarid", 8,
+													"Pig", "Oesophagostomum", 40,
+													"Pig", "Oesophagostomum", 15,
+													"Pig", "Oesophagostomum", 8,
+)
+
+simparameters <- bioparameters %>%
+	full_join(meanparameters, by=c("Host","Parasite")) %>%
+	full_join(drugparameters, by=c("Host","Parasite")) %>%
+	mutate(recN = NA_character_)
+stopifnot(all(!is.na(simparameters %>% select(-recN))))
+
+
+simparameters <- simparameters %>%
+	mutate(Delta = Target-Lower, simnr = 1:n()) %>%
+	group_by(Host, Parasite, k1, k2, cor, Drug, Target) %>%
+	mutate(simnr = min(simnr)) %>%
+	ungroup()
+
+
+### To get N for specific pre-specified mean:
+
+pb <- txtProgressBar(style=3)
+simnrs <- unique(simparameters$simnr)
+output <- vector('list', length=length(unique(simparameters$simnr)))
+for(r in seq_along(simnrs)){
+
+	using <- simparameters %>%
+		filter(simnr == simnrs[r])
+	epgrange <- unique(using$Mean)
+
+	flist <- fecrt_sample_size(EPGrange=epgrange, mulength=length(epgrange), EDT=1, target=using$Target[1]/100, margin=unique(using$Delta/100), k1=using$k1[1], k2=using$k2[1], cor=using$cor[1], iters=5000L)
+	# function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = c(1, 2.5, 5, 10, 25, 50), target = 0.99, margin = c(0.04, 0.09), k1 = 1, k2 = 0.6, cor = 0.3, Nlength=50, mulength=20, EPGlength=100)
+
+	fmax <- using %>%
+		mutate(Margin = Delta/100) %>%
+		group_by(Margin, Mean) %>%
+		summarise(power = 1, N = Inf, .groups='drop')
+	fmu <- flist$nmu %>%
+		bind_rows(fmax) %>%
+		filter(power >= 0.8) %>%
+		group_by(Margin, Mean) %>%
+		arrange(Margin, Mean, power) %>%
+		slice(1) %>%
+		ungroup() %>%
+		mutate(N = pmax(N, 5), Delta = Margin*100) %>%
+		select(Delta, Mean, N, power)
+
+	output[[r]] <- using %>%
+		full_join(fmu, by=c("Delta","Mean")) %>%
+		select(Host, Parasite, k1, k2, cor, Drug, Protocol, Target, Lower, Mean, N)
+	stopifnot(all(!is.na(output[[r]])))
+
+	setTxtProgressBar(pb, r/length(unique(simparameters$simnr)))
+}
+close(pb)
+
+results <- bind_rows(output) %>%
+	arrange(Host, Parasite, Drug, Target, Lower, Mean) %>%
+	mutate(TotalEggs = N*Mean)
+results %>% print(n=Inf)
+
+tabs <- results %>%
+	mutate(Table = str_c(Host, Parasite, Drug)) %>%
+	split(.$Table) %>%
+	imap( ~ .x %>%
+			 	mutate(ProtocolText = str_c(Protocol, " protocol\n(grey zone: ", Lower, "-", Target, "%)")) %>%
+			 	mutate(NText = str_c(N, " animals\n(Total eggs = ", TotalEggs, ")")) %>%
+			 	select(Mean, ProtocolText, NText) %>%
+			 	spread(ProtocolText, NText) %>%
+			 	arrange(desc(Mean))
+	)
+
+write_xlsx(tabs, file.path("/Users/matthewdenwood/Documents/Research/Projects/WAAVP/Power paper/power/sample_size.xlsx"))
+
+
+### To get full graph for varying mean:
 
 combos <- tribble(~Host, ~Parasite, ~Drug, ~Target, ~Research, ~Clinical,
 									"Calf", "Nematodes", "", 99, 0.04, 0.09,
@@ -46,7 +154,7 @@ for(r in 1:nrow(combos)){
 	cor <- combos$correlation[r]
 
 	flist <- fecrt_sample_size(EPGrange=epgrange, target=combos$Target[r]/100, margin=margins, k1=combos$k1[r], k2=combos$k2[r], cor=cor, iters=5000L)
- # function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = c(1, 2.5, 5, 10, 25, 50), target = 0.99, margin = c(0.04, 0.09), k1 = 1, k2 = 0.6, cor = 0.3, Nlength=50, mulength=20, EPGlength=100)
+	# function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = c(1, 2.5, 5, 10, 25, 50), target = 0.99, margin = c(0.04, 0.09), k1 = 1, k2 = 0.6, cor = 0.3, Nlength=50, mulength=20, EPGlength=100)
 
 
 	fmu <- flist$fmu %>%
@@ -71,6 +179,9 @@ for(r in 1:nrow(combos)){
 
 }
 dev.off()
+
+
+
 
 
 ###### OLDER STUFF

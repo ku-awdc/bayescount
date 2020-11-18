@@ -6,15 +6,118 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library('bayescount')
+library('tidyverse')
 ```
 
-```{r eval=FALSE, include=FALSE}
-dput(simparameters %>% group_by(Species, k1, k2, cor) %>% summarise())
-dput(simparameters %>% group_by(Species, Protocol, Drug, Target, Delta) %>% summarise() %>% mutate(T_A = Target-Delta))
+Note: this is NOT the verison to use - see matrices.R
+
+```{r}
+bioparameters <- read_csv("/Users/matthewdenwood/Documents/Research/Projects/WAAVP/Power paper/analyses/median_numbers.csv") %>%
+	select(Host, Parasite, muQ1, muQ2, muQ3, k1, k2, cor = correlation) %>%
+	filter(! Parasite %in% c("Ascaris","Trichuris")) %>%
+	mutate(Host = case_when( Host == "Foal" ~ "Equine", TRUE ~ Host))
+
+drugparameters <- tribble(~Host, ~Parasite, ~Drug, ~Protocol, ~Target, ~Lower,
+													"Calf", "Nematodes", "All", "Clinical", 99, 90,
+													"Calf", "Nematodes", "All", "Research", 99, 95,
+													"Sheep", "Nematodes", "All", "Clinical", 99, 90,
+													"Sheep", "Nematodes", "All", "Research", 99, 95,
+													"Equine", "Nematodes", "ML", "Clinical", 99.9, 92,
+													"Equine", "Nematodes", "ML", "Research", 99.9, 96,
+													"Equine", "Nematodes", "BZ", "Clinical", 99, 90,
+													"Equine", "Nematodes", "BZ", "Research", 99, 95,
+													"Equine", "Nematodes", "Pyrantel", "Clinical-1", 98, 80,
+													"Equine", "Nematodes", "Pyrantel", "Clinical-2", 98, 85,
+													"Equine", "Nematodes", "Pyrantel", "Research-1", 98, 88,
+													"Equine", "Nematodes", "Pyrantel", "Research-2", 98, 90,
+													"Equine", "Ascarid", "All", "Clinical-1", 99, 90,
+													"Equine", "Ascarid", "All", "Clinical-2", 99.9, 92,
+													"Equine", "Ascarid", "All", "Research-1", 99, 95,
+													"Equine", "Ascarid", "All", "Research-2", 99.9, 96,
+													"Pig", "Oesophagostomum", "IVM", "Clinical-1", 90, 80,
+													"Pig", "Oesophagostomum", "IVM", "Clinical-2", 95, 85,
+													"Pig", "Oesophagostomum", "IVM", "Research-1", 90, 85,
+													"Pig", "Oesophagostomum", "IVM", "Research-2", 95, 90,
+													"Pig", "Oesophagostomum", "BZ", "Clinical-1", 98, 85,
+													"Pig", "Oesophagostomum", "BZ", "Clinical-2", 98, 90,
+													"Pig", "Oesophagostomum", "BZ", "Research-1", 98, 90,
+													"Pig", "Oesophagostomum", "BZ", "Research-2", 98, 95,
+													)
+
+meanparameters <- tribble(~Host, ~Parasite, ~Mean,
+													"Calf", "Nematodes", 40,
+													"Calf", "Nematodes", 15,
+													"Calf", "Nematodes", 8,
+													"Sheep", "Nematodes", 40,
+													"Sheep", "Nematodes", 15,
+													"Sheep", "Nematodes", 8,
+													"Equine", "Nematodes", 40,
+													"Equine", "Nematodes", 15,
+													"Equine", "Nematodes", 8,
+													"Equine", "Ascarid", 40,
+													"Equine", "Ascarid", 15,
+													"Equine", "Ascarid", 8,
+													"Pig", "Oesophagostomum", 40,
+													"Pig", "Oesophagostomum", 15,
+													"Pig", "Oesophagostomum", 8,
+													)
+
 ```
+
+```{r}
+simparameters <- bioparameters %>% 
+	full_join(meanparameters, by=c("Host","Parasite")) %>%
+	full_join(drugparameters, by=c("Host","Parasite")) %>%
+	mutate(recN = NA_character_)
+stopifnot(all(!is.na(simparameters %>% select(-recN))))
+```
+
 
 
 ```{r}
+set.seed(2020-11-18)
+alpha <- 0.05
+minN <- 5
+maxN <- 50
+byN <- 1
+
+for(i in seq_len(nrow(simparameters))){
+	
+	mean <- simparameters %>% slice(i) %>% pull(Mean)
+	k1 <- simparameters %>% slice(i) %>% pull(k1)
+	k2 <- simparameters %>% slice(i) %>% pull(k2)
+	cor <- simparameters %>% slice(i) %>% pull(cor)
+	ti <- simparameters %>% slice(i) %>% pull(Target)
+	ta <- simparameters %>% slice(i) %>% pull(Lower)
+
+	lab <- str_c(simparameters %>% slice(i) %>% select(Host, Parasite, Drug, Protocol, Mean), collapse = ' ')
+
+	ss <- efficacy_samplesize(minN = minN, maxN = maxN, byN = byN, paired = TRUE, plot=TRUE, alpha=alpha, mean=mean, k=c(k1,k2), cor=cor, T_A=ta/100, T_I=ti/100)
+	
+	recN <- ss$Plot$labels$title
+	simparameters$recN[i] <- recN
+	ss$Plot + labs(title = lab, subtitle = recN)
+	
+	ggsave(file.path("/Users/matthewdenwood/Documents/Research/Projects/WAAVP/Power paper/power/", str_c(str_replace_all(lab, " ", "_"), ".pdf")))
+
+}
+
+simparameters$recN <- as.numeric(str_replace(simparameters$recN, "Overall recommended N: ", ""))
+summary(simparameters)
+
+save(simparameters, file=file.path("/Users/matthewdenwood/Documents/Research/Projects/WAAVP/Power paper/power/", "results.Rdata"))
+
+```
+
+
+
+
+
+
+```{r eval=FALSE include=FALSE}
+#dput(simparameters %>% group_by(Species, k1, k2, cor) %>% summarise())
+#dput(simparameters %>% group_by(Species, Protocol, Drug, Target, Delta) %>% summarise() %>% mutate(T_A = Target-Delta))
+
 kvals <- structure(list(Species = c("Calves", "Cattle", "Equine", "Sheep"
 ), k1 = c(1.5, 1.1, 0.6, 1.2), k2 = c(0.4, 0.5, 0.6, 0.7), cor = c(0.1, 
 0.1, 0.5, 0.5)), class = c("grouped_df", "tbl_df", "tbl", "data.frame"
@@ -43,7 +146,7 @@ targets <- structure(list(Species = c("Calves", "Calves", "Cattle", "Cattle",
 ```
 
 
-```{r}
+```{r eval=FALSE include=FALSE}
 set.seed(2019-10-23)
 alpha <- 0.025
 minN <- 5

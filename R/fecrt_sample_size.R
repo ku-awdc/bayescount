@@ -16,8 +16,14 @@ fecrt_sample_size <- function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = 
 
 	Ns <- unique(round(10^seq(log10(Nrange[1]), log10(Nrange[2]), length=Nlength)))
 
-	murange <- EPGrange/rev(range(EDT))
-	mu <- round(10^(seq(log10(max(5,murange[1])), log10(min(1000,murange[2])), length=mulength)), 2)
+	if(length(EPGrange)==mulength && length(EDT)==1){
+		mu <- EPGrange / EDT
+		specificmu <- TRUE
+	}else{
+		murange <- EPGrange/rev(range(EDT))
+		mu <- round(10^(seq(log10(max(5,murange[1])), log10(min(1000,murange[2])), length=mulength)), 2)
+		specificmu <- FALSE
+	}
 
 	## TODO: Make into arguments
 	conjugate_priors <- c(1,1)
@@ -55,7 +61,7 @@ fecrt_sample_size <- function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = 
 	##     otherwise if power is always < 0.8 then set N to unknown
 
 	cj <- check %>%
-		filter(Nunder>=1, Nover>=1)
+		filter(Nover>=1)
 
 	nmu <- cmat %>%
 		right_join(cj, by=c('Margin', 'Mean')) %>%
@@ -71,6 +77,13 @@ fecrt_sample_size <- function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = 
 		) %>%
 		mutate(N = 10^N) %>%
 		arrange(Margin, Mean)
+
+	if(specificmu){
+		nmu <- cmat %>%
+			right_join(cj, by=c('Margin', 'Mean')) %>%
+			ungroup()
+		return(list(smat=smat, nmu=nmu))
+	}
 
 	## Fake data set:
 	fakedata <- expand_grid(EPG=seq(EPGrange[1], EPGrange[2], length.out=EPGlength), EDT = EDT) %>%
