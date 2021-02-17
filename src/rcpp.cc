@@ -1,5 +1,6 @@
 #include "Rcpp.h"
 #include <algorithm>  // std::random_shuffle
+#include <cmath>  // std::sqrt
 
 #include "fecrt.h"
 
@@ -82,36 +83,75 @@ Rcpp::NumericVector estimate_k(const double mean_1, const double var_1, const do
 // Forward declaration:
 double find_theta(const Rcpp::IntegerVector data, const double mu, const double ax, const double bx, const double tol);
 
-Rcpp::NumericVector estimate_k_ml(const Rcpp::IntegerVector data_1, const double mean_1, const double var_1, const Rcpp::IntegerVector data_2, const double mean_2, const double var_2, const double cov_12, const bool paired){
+Rcpp::NumericVector estimate_k_ml(const Rcpp::IntegerVector data_1, const double mean_1, const double var_1, const Rcpp::IntegerVector data_2, const double mean_2, const double var_2, const double cov_12, const bool paired, const double k_ratio = 1.0, const double min=0.001, const double max=20.0, const double tol=0.01){
 
-	Rcpp::NumericVector retval(2);
+	Rcpp::NumericVector retval(5);
+
+	// If min and max are negative then they are relative to the Poisson variance
+	// TODO: do we need a min or can it always be 0???
+	double min_1 = min;
+	double min_2 = min;
+	double max_1 = max;
+	double max_2 = max;
+
+	if(min < 0.0){
+		Rcpp::stop("Not implemented!");
+	}
+	if(max < 0.0){
+		// max (p) is expressed as the minimum proportion of the total variance due to the Gamma part:
+		// solve p = (m^2 / k) / ((m^2 / k) + m) for k
+		// k = m * (1/p -1)
+		//double m = std::max(mean_1, mean_2);
+		double p = -max;
+		max_1 = mean_1 * (1.0/p -1.0);
+		max_2 = mean_2 * (1.0/p -1.0);
+
+		// Correct but not needed:
+		// double pois_cv = 1.0 / std::sqrt(std::max(mean_1, mean_2));
+	}
 
 	// Get MLE estimates of two k values:
-	double k1 = find_theta(data_1, mean_1, 0.001, 20.0, 0.01);
-	double k2 = find_theta(data_2, mean_2, 0.001, 20.0, 0.01);
+	double k1 = find_theta(data_1, mean_1, min_1, max_1, tol);
+	double k2 = find_theta(data_2, mean_2, min_2, max_2, tol);
 
-	if(paired && var_1 > 0.0 && var_2 > 0.0 && cov_12 > 0.0){
+	retval[3] = k1;
+	retval[4] = k2;
+
+	// TODO: allow negative correlation??  Need to calculate and report it at least
+//	if(paired && var_1 > 0.0 && var_2 > 0.0 && cov_12 > 0.0){
+	if(paired && var_1 > 0.0 && var_2 > 0.0){
 		double correlation = 0.0;
 
 		// Assuming that none of the covariance is due to Poisson variation:
 		// correlation = cov_12 / (std::sqrt(var_1 - mean_1) * std::sqrt(var_2 - mean_2));
 
-		// Empirically this seems to give the best results:
+		// Empirically this seems to give better results:
 		correlation = cov_12 / (std::sqrt(var_1) * std::sqrt(var_2));
+		// Major advantage is that it is limited to -1,1
+
+		// New approach - use estimated k to derive gamma variance:
+//		correlation = cov_12 / (std::sqrt(std::min(var_1, mean_1*mean_1 / k1)) * std::sqrt(std::min(var_2, mean_2*mean_2 / k2)));
+//		correlation = cov_12 / ((mean_1 / std::sqrt(k1)) * (mean_2 / std::sqrt(k2)));
+		// This doesn't work because there is a correlation >1 too often
+
+		retval[2] = correlation;
 
 		if(correlation >= 1.0){
 			Rcpp::warning("correlation >= 1.0");
 			correlation = 0.99;
 		}
 
-		// Adjust k:
-		k1 /= (1.0 - correlation);
-		k2 /= (1.0 - correlation);
+		// Adjust k only if positive correlation:
+		if(correlation > 0.0){
+			k1 /= (1.0 - correlation);
+			k2 /= (1.0 - correlation);
+		}
 	}
 
 	// TODO: might be that var_2 > 0 but var_1 = 0??
 	if(var_2 <= 0.0){
-		k2 = k1;
+		k2 = k1 * k_ratio;
+		retval[4] = NA_REAL;
 	}
 
 	if(!R_finite(k2) || k2 <= 0.0){
@@ -409,7 +449,7 @@ Rcpp::DataFrame efficacy_frequencies_unpaired(const int iters, const Rcpp::Numer
 {
 
 	// Note: k_pre and k_post are the correlated k - I think - check!!!
-	
+
 	// Check that the thresholds have 2 columns and >0 rows:
 	if(thresholds.ncol() != 2){
 		Rcpp::stop("There must be exactly 2 columns");
@@ -580,7 +620,7 @@ Rcpp::DataFrame efficacy_frequencies_paired(int iters, Rcpp::NumericVector red, 
 {
 
 	// Note: k_pre and k_post are the correlated k - I think - check!!!
-	
+
 	// Check that the thresholds have 2 columns and >0 rows:
 	if(thresholds.ncol() != 2){
 		Rcpp::stop("There must be exactly 2 columns");
@@ -858,7 +898,7 @@ Rcpp::DataFrame power_matrix_paired(Rcpp::NumericVector Ns, Rcpp::NumericVector 
 
 		// Then loop over iterations to simulate one pre-treatment dataset common to all margins and N:
 		for(int it=0; it<iters; ++it){
-			
+
 			Rcpp::checkUserInterrupt();
 
 			Rcpp::NumericVector gammas;
@@ -994,6 +1034,7 @@ RCPP_MODULE(rcpp_module){
 
 	using namespace Rcpp;
 
+	function("estimate_k_ml", &estimate_k_ml);
 	function("RCPP_efficacy_analysis", &efficacy_analysis);
 	function("RCPP_typology_analysis", &typology_analysis);
 	function("RCPP_efficacy_frequencies_paired", &efficacy_frequencies_paired);
