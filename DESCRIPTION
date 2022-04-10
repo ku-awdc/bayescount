@@ -45,7 +45,10 @@ Suggests:
     knitr,
     rmarkdown,
     spelling
-LinkingTo: Rcpp
+LinkingTo: 
+	Rcpp,
+	RcppDist,
+	RcppArmadillo
 VignetteBuilder: knitr
 URL: https://github.com/ku-awdc/bayescount
 Language: en-GB

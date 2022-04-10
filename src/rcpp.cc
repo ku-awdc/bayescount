@@ -1,8 +1,11 @@
+//#include "data_sim.h"
+
 #include "Rcpp.h"
 #include <algorithm>  // std::random_shuffle
 #include <cmath>  // std::sqrt
 
 #include "fecrt.h"
+
 
 double pbnb(int q, double k, double alpha, double beta, bool lower, bool inclusive){
 
