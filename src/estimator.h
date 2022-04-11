@@ -48,12 +48,16 @@ private:
   double m_covnum = 0.0;
   size_t m_n_pre = 0L;
   size_t m_n_post = 0L;
-  
+
+  double m_var_pre = NA_REAL;
+  double m_var_post = NA_REAL;
+  double m_cov = NA_REAL;
+  double m_effk_pre = NA_REAL;
+  double m_effk_post = NA_REAL;
+
   static constexpr bool s_store_count = (t_ktype==ktypes::ql || t_ktype==ktypes::ml);
 
-protected:
-  
-  inline void add_pre(const int obs)
+  void add_pre(const int obs)
   {
     if constexpr(t_paired)
     {
@@ -77,12 +81,12 @@ protected:
       m_mean_pre += delta / static_cast<double>(m_n_pre);
   		m_varnum_pre += delta * (obs - m_mean_pre);
       // Variance = m_varnum_pre / (m_n_pre-1.0)
-      
+
       m_sum_pre += obs;
     }
   }
 
-  inline void add_post(const int obs)
+  void add_post(const int obs)
   {
     if constexpr(t_paired)
     {
@@ -106,12 +110,12 @@ protected:
       m_mean_post += delta / static_cast<double>(m_n_post);
   		m_varnum_post += delta * (obs - m_mean_post);
       // Variance = m_varnum_post / (m_n_post-1.0)
-      
-      m_sum_post += obs;      
+
+      m_sum_post += obs;
     }
   }
 
-  inline void add_pair(const int pre, const int post)
+  void add_pair(const int pre, const int post)
   {
     // If needed, store the data:
     if constexpr(s_store_count)
@@ -145,14 +149,13 @@ protected:
       m_covnum += delta1 * delta2 * iip1;
       // Coariance = m_covnum / (m_n_pre-1.0)
     }
-    
+
     m_sum_pre += pre;
     m_sum_post += post;
   }
-  
+
   inline void estimate_dobson(double& lci, double& uci) const
   {
-    std::array<double, 2L> rv;
     if constexpr(t_paired)
     {
       if(m_sum_post < m_sum_pre)
@@ -217,7 +220,7 @@ public:
     {
       Rcpp::stop("Unrecognised value for t_resizable");
     }
-    
+
     if constexpr(t_all_methods)
     {
       // All methods:  Denwood, MLE, WAAVP, Levecke, Dobson
@@ -229,7 +232,7 @@ public:
     }
 
   }
-  
+
   void reset()
   {
     m_sum_pre = 0L;
@@ -242,7 +245,7 @@ public:
     m_n_pre = 0L;
     m_n_post = 0L;
   }
-  
+
   void push_pre(const int obs)
   {
     if constexpr(t_paired)
@@ -292,62 +295,59 @@ public:
       }
     }
   }
-  
-  void estimate(double& efficacy, double& p1, double& p2) const
+
+  void estimate(double& efficacy, double& p1, double& p2)
   {
+    // Update internally stored variance:
+    m_var_pre = m_varnum_pre / static_cast<double>(m_n_pre-1L);
+    m_var_post = m_varnum_post / static_cast<double>(m_n_post-1L);
+    m_cov = m_covnum / static_cast<double>(m_n_pre-1L); // if paired then m_n_pre==m_n_post
+
     // Estimate k if necessary:
-    double effk_pre;
-    double effk_post;
     if constexpr(t_ktype == ktypes::fix)
     {
-      effk_pre = m_true_effk_pre;
-      effk_post = m_true_effk_post;
+      m_effk_pre = m_true_effk_pre;
+      m_effk_post = m_true_effk_post;
     }
     else
     {
       Rcpp::stop("Unhandled t_ktype in estimate()");
     }
 
-    const double varpre = m_varnum_pre / static_cast<double>(m_n_pre-1L);
-    const double varpost = m_varnum_post / static_cast<double>(m_n_post-1L);
-    const double cov = m_covnum / static_cast<double>(m_n_pre-1L); // if paired then m_n_pre==m_n_post
-
     // First value is always efficacy:
     efficacy = 1.0 - m_mean_post / m_mean_pre;
 
-    double mean_ratio = 1.0;
-    double H0_1 = 0.95;
-    double H0_2 = 0.9;
-    double conjugate_priors[2] = { 1L, 1L };
-    int delta = 1L;
-    int beta_iters = 1000L;
-    int approx = 1L;
+    // TODO: re-write bnb_pval as internal method
+    int delta = static_cast<int>(m_delta);
+    int approx = static_cast<int>(m_approx);
+    double conjugate_priors[2] = { m_conjugate_priors[0L], m_conjugate_priors[1L] };
     double p_1 = 0.0;
     double p_2 = 0.0;
 
-    int bnbfailed = bnb_pval(m_sum_pre, m_n_pre, effk_pre, m_mean_pre, varpre, m_sum_post, m_n_post, effk_post, m_mean_post, varpost, cov, mean_ratio, H0_1, H0_2, conjugate_priors, delta, beta_iters, approx, &p_1, &p_2);
+    int bnbfailed = bnb_pval(m_sum_pre, m_n_pre, m_effk_pre, m_mean_pre, m_var_pre, m_sum_post, m_n_post, m_effk_post, m_mean_post, m_var_post, m_cov,
+                            m_mean_ratio, m_H0_1, m_H0_2, conjugate_priors, delta, m_beta_iters, approx, &p_1, &p_2);
     p1 = p_1;
     p2 = p_2;
-    
+
   }
 
-  void estimate(double& efficacy, double& bnb_p1, double& bnb_p2, double& waavp_lci, double& waavp_uci) const // TODO: add arguments
+  void estimate(double& efficacy, double& bnb_p1, double& bnb_p2, double& waavp_lci, double& waavp_uci) // TODO: add arguments
   {
     if constexpr(!t_all_methods)
     {
       Rcpp::stop("Unable to call full estimate function when !t_all_methods");
     }
-    
+
     // Delegate k estimation and Denwood method:
     estimate(efficacy, bnb_p1, bnb_p2);
-    
+
     // etc:
     // estimate_dobson(dobson_lci, dobson_uci);
-    
-    
+
+
   }
 
-  Rcpp::NumericVector estimate() const
+  Rcpp::NumericVector estimate()
   {
     if(m_n_pre == 0L)
     {
@@ -358,24 +358,30 @@ public:
       Rcpp::stop("Can't estimate: no post-treatment data!");
     }
 
-    // To store output (append variance/covariance for R):
-    Rcpp::NumericVector rv(t_rvlen+3L);
-    rv.attr("names") = Rcpp::CharacterVector::create("efficacy", "p1", "p2", "mle_lci", "mle_uci", "waavp_lci", "waavp_uci", "levecke_lci", "levecke_uci", "dobson_lci", "dobson_uci", "var1", "var2", "cov");
+    // To store output (append effk/variance/covariance for R):
+    Rcpp::NumericVector rv(t_rvlen+5L);
 
     // Get esimtates:
     if constexpr(t_all_methods)
     {
       estimate(rv[0L], rv[1L], rv[2L], rv[3L], rv[4L], rv[5L], rv[6L], rv[7L], rv[8L], rv[9L], rv[10L]);
       static_assert(t_rvlen==11L, "Logic error: incorrect argument length for estimate(...)");
+      
+      rv.attr("names") = Rcpp::CharacterVector::create("efficacy", "p1", "p2", "mle_lci", "mle_uci", "waavp_lci", "waavp_uci", 
+                                          "levecke_lci", "levecke_uci", "dobson_lci", "dobson_uci", "effk1", "effk2", "var1", "var2", "cov");      
     }
     else
     {
       estimate(rv[0L], rv[1L], rv[2L]);
+      
+      rv.attr("names") = Rcpp::CharacterVector::create("efficacy", "p1", "p2", "effk1", "effk2", "var1", "var2", "cov");            
     }
-    
-    rv[t_rvlen] = m_varnum_pre / static_cast<double>(m_n_pre-1L);
-    rv[t_rvlen+1L] = m_varnum_post / static_cast<double>(m_n_post-1L);
-    rv[t_rvlen+2L] = m_covnum / static_cast<double>(m_n_pre-1L); // m_n_pre==m_n_post
+
+    rv[t_rvlen] = m_effk_pre;
+    rv[t_rvlen+1L] = m_effk_post;
+    rv[t_rvlen+2L] = m_var_pre;
+    rv[t_rvlen+3L] = m_var_post;
+    rv[t_rvlen+4L] = m_cov;
 
     return rv;
   }
