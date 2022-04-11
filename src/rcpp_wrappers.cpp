@@ -148,6 +148,33 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
       estr.push_multiple(pre, post);
       rv = estr.estimate();
     }
+    else if(k_type=="mm")
+    {
+      estimator<true, true, ktypes::mm, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
+        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+              approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
+
+      estr.push_multiple(pre, post);
+      rv = estr.estimate();
+    }
+    else if(k_type=="ql")
+    {
+      estimator<true, true, ktypes::ql, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
+        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+              approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
+
+      estr.push_multiple(pre, post);
+      rv = estr.estimate();
+    }
+    else if(k_type=="ml")
+    {
+      estimator<true, true, ktypes::ml, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
+        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+              approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
+
+      estr.push_multiple(pre, post);
+      rv = estr.estimate();
+    }
     else
     {
       Rcpp::stop("Unhandled k_type");
@@ -157,6 +184,48 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
   else
   {
     maxN = std::max<size_t>(maxN, post.length());
+    
+    if(k_type=="fix")
+    {
+      estimator<false, false, ktypes::fix, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_fix>
+        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+              approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
+
+      estr.push_multiple(pre, post);
+      rv = estr.estimate();
+    }
+    else if(k_type=="mm")
+    {
+      estimator<false, true, ktypes::mm, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
+        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+              approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
+
+      estr.push_multiple(pre, post);
+      rv = estr.estimate();
+    }
+    else if(k_type=="ql")
+    {
+      estimator<false, true, ktypes::ql, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
+        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+              approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
+
+      estr.push_multiple(pre, post);
+      rv = estr.estimate();
+    }
+    else if(k_type=="ml")
+    {
+      estimator<false, true, ktypes::ml, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
+        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+              approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
+
+      estr.push_multiple(pre, post);
+      rv = estr.estimate();
+    }
+    else
+    {
+      Rcpp::stop("Unhandled k_type");
+    }
+    
   }
 
   return rv;

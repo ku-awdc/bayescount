@@ -331,7 +331,8 @@ public:
 
   }
 
-  void estimate(double& efficacy, double& bnb_p1, double& bnb_p2, double& waavp_lci, double& waavp_uci) // TODO: add arguments
+  void estimate(double& efficacy, double& bnb_p1, double& bnb_p2, double& waavp_lci, double& waavp_uci, double& mle_lci, double& mle_uci,
+                double& levecke_lci, double& levecke_uci, double& dobson_lci, double& dobson_uci)
   {
     if constexpr(!t_all_methods)
     {
