@@ -4,6 +4,8 @@
 // This is required by distribution.h and precludes Rcpp.h:
 #include <RcppDist.h>
 #include <array>
+#include <type_traits>
+#include <typeinfo>
 
 #include "enums.h"
 #include "fecrt.h"
@@ -12,6 +14,25 @@
 // Then this gets passed to simulation, so that simulation doesn't need to store counts or do any estimating itself
 // estimator class could have methods to add data 1 point at a time (running mean) or as an array or as a vector
 // this means the newton rhapson function should be templated (or included as a method within estimator class??)
+
+// TODO: move storage of data and N to a subserviant class that can be specialised more easily so that m_N and m_Npre/m_Npost
+// are defined conditionally on t_paired
+template<bool t_paired, typename t_cont_type, containers t_container>
+class data_storage;
+
+// Paired data storage:
+template<>
+class data_storage<true>
+{
+private:
+  // Note: these are not actually needed if !s_store_count
+  t_cont_type m_pre;
+  t_cont_type m_post;
+  
+public:
+  const size_t m_maxN;
+};
+
 
 template<bool t_paired, bool t_all_methods, ktypes t_ktype, typename t_cont_type, containers t_container, size_t t_rvlen>
 class estimator
@@ -46,6 +67,14 @@ private:
   double m_varnum_pre = 0.0;
   double m_varnum_post = 0.0;
   double m_covnum = 0.0;
+
+  // Temporary solution - will be replaced with data_storage class:
+  using type_paired = std::conditional_t<t_paired, size_t, const size_t>;
+  using type_unpaired = std::conditional_t<t_paired, const size_t, size_t>;
+  type_paired m_N = -1L;
+  type_unpaired m_Npre = -1L;
+  type_unpaired m_Npost = -1L;
+
   size_t m_n_pre = 0L;
   size_t m_n_post = 0L;
 
@@ -154,7 +183,7 @@ private:
     m_sum_post += post;
   }
 
-  inline void estimate_dobson(double& lci, double& uci) const
+  void estimate_dobson(double& lci, double& uci) const
   {
     if constexpr(t_paired)
     {
@@ -176,6 +205,31 @@ private:
       lci = NA_REAL;
       uci = NA_REAL;
     }
+  }
+
+  void estimate_waavp(double& lci, double& uci) const
+  {
+//  void waavp_p_ci(double mu1, double mu2, double var1, double var2, double cov12, int N, double tail, double *ci_l, double *ci_u){
+
+
+    if constexpr(t_paired)
+    {
+      /*
+  	// Method B of Lyndal-Murphy, M., Swain, a J., & Pepper, P. M. (2014). Methods to determine resistance to anthelmintics when continuing larval development occurs. Veterinary Parasitology, 199(3–4), 191–200. https://doi.org/10.1016/j.vetpar.2013.11.002
+
+    	const int df = m_N -1;
+    	// Signature of qt is:  double  qt(double, double, int, int);
+    	double tval = R::qt(1.0 - tail, (double) df, 1, 0);
+
+    	double Nd = (double) N;
+    	double varred = var1 / (Nd * mu1 * mu1) + var2 / (Nd * mu2 * mu2) - 2.0 * cov12 / (Nd * mu1 * mu2);
+
+    	*ci_u = 1 - (mu2 / mu1 * std::exp(-tval * std::sqrt(varred)));
+    	*ci_l = 1 - (mu2 / mu1 * std::exp(tval * std::sqrt(varred)));
+*/
+    }
+
+
   }
 
 public:
@@ -231,6 +285,8 @@ public:
       static_assert(t_rvlen == (1L + 2L), "t_rvlen is an unexpected size for Denwood method");
     }
 
+    reset();
+
   }
 
   void reset()
@@ -242,6 +298,17 @@ public:
     m_varnum_pre = 0.0;
     m_varnum_post = 0.0;
     m_covnum = 0.0;
+
+    if constexpr(t_paired)
+    {
+      m_N = 0L;
+    }
+    else
+    {
+      m_Npre = 0L;
+      m_Npost = 0L;
+    }
+
     m_n_pre = 0L;
     m_n_post = 0L;
   }
@@ -367,15 +434,15 @@ public:
     {
       estimate(rv[0L], rv[1L], rv[2L], rv[3L], rv[4L], rv[5L], rv[6L], rv[7L], rv[8L], rv[9L], rv[10L]);
       static_assert(t_rvlen==11L, "Logic error: incorrect argument length for estimate(...)");
-      
-      rv.attr("names") = Rcpp::CharacterVector::create("efficacy", "p1", "p2", "mle_lci", "mle_uci", "waavp_lci", "waavp_uci", 
-                                          "levecke_lci", "levecke_uci", "dobson_lci", "dobson_uci", "effk1", "effk2", "var1", "var2", "cov");      
+
+      rv.attr("names") = Rcpp::CharacterVector::create("efficacy", "p1", "p2", "mle_lci", "mle_uci", "waavp_lci", "waavp_uci",
+                                          "levecke_lci", "levecke_uci", "dobson_lci", "dobson_uci", "effk1", "effk2", "var1", "var2", "cov");
     }
     else
     {
       estimate(rv[0L], rv[1L], rv[2L]);
-      
-      rv.attr("names") = Rcpp::CharacterVector::create("efficacy", "p1", "p2", "effk1", "effk2", "var1", "var2", "cov");            
+
+      rv.attr("names") = Rcpp::CharacterVector::create("efficacy", "p1", "p2", "effk1", "effk2", "var1", "var2", "cov");
     }
 
     rv[t_rvlen] = m_effk_pre;
