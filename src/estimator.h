@@ -137,7 +137,7 @@ private:
 
   		double delta = obs - m_mean_post;
       m_mean_post += delta / static_cast<double>(m_n_post);
-  		m_varnum_post += delta * (obs - m_mean_post); // delta * delta ??
+  		m_varnum_post += delta * (obs - m_mean_post);
       // Variance = m_varnum_post / (m_n_post-1.0)
 
       m_sum_post += obs;
