@@ -9,29 +9,12 @@
 
 #include "enums.h"
 #include "fecrt.h"
+//#include "data_storage.h"
 
 // TODO: an estimater class that sets up the estimation method and potentially stores pre and post internally
 // Then this gets passed to simulation, so that simulation doesn't need to store counts or do any estimating itself
 // estimator class could have methods to add data 1 point at a time (running mean) or as an array or as a vector
 // this means the newton rhapson function should be templated (or included as a method within estimator class??)
-
-// TODO: move storage of data and N to a subserviant class that can be specialised more easily so that m_N and m_Npre/m_Npost
-// are defined conditionally on t_paired
-template<bool t_paired, typename t_cont_type, containers t_container>
-class data_storage;
-
-// Paired data storage:
-template<>
-class data_storage<true>
-{
-private:
-  // Note: these are not actually needed if !s_store_count
-  t_cont_type m_pre;
-  t_cont_type m_post;
-  
-public:
-  const size_t m_maxN;
-};
 
 
 template<bool t_paired, bool t_all_methods, ktypes t_ktype, typename t_cont_type, containers t_container, size_t t_rvlen>
@@ -42,6 +25,7 @@ private:
   const double m_mean_ratio;
   const double m_H0_1;
   const double m_H0_2;
+  const double m_tail;
   const double m_lci;
   const double m_uci;
   const std::array<double, 2L> m_conjugate_priors;
@@ -59,8 +43,6 @@ private:
 
   unsigned long long m_sum_pre = 0L;
   unsigned long long m_sum_post = 0L;
-//  long long m_sum_pre = 0L;
-//  long long m_sum_post = 0L;
 
   double m_mean_pre = 0.0;
   double m_mean_post = 0.0;
@@ -74,9 +56,6 @@ private:
   type_paired m_N = -1L;
   type_unpaired m_Npre = -1L;
   type_unpaired m_Npost = -1L;
-
-  size_t m_n_pre = 0L;
-  size_t m_n_post = 0L;
 
   double m_var_pre = NA_REAL;
   double m_var_post = NA_REAL;
@@ -92,27 +71,26 @@ private:
     {
       Rcpp::stop("Logic error: add_pre called for a paired analysis");
     }
-    else
+
+    // If needed, store the data:
+    if constexpr(s_store_count)
     {
-      // If needed, store the data:
-      if constexpr(s_store_count)
+      if(m_Npre >= m_maxN)
       {
-        if(m_n_pre > m_maxN)
-        {
-          Rcpp::stop("Max storage capacity exceeded for pre-treatment data");
-        }
-        m_pre[m_n_pre] = obs;
+        Rcpp::stop("Max storage capacity exceeded for pre-treatment data");
       }
-
-      m_n_pre++;
-
-  		double delta = obs - m_mean_pre;
-      m_mean_pre += delta / static_cast<double>(m_n_pre);
-  		m_varnum_pre += delta * (obs - m_mean_pre);
-      // Variance = m_varnum_pre / (m_n_pre-1.0)
-
-      m_sum_pre += obs;
+      m_pre[m_Npre] = obs;
     }
+
+    m_Npre++;
+
+		double delta = obs - m_mean_pre;
+    m_mean_pre += delta / static_cast<double>(m_Npre);
+		m_varnum_pre += delta * (obs - m_mean_pre);
+    // Variance = m_varnum_pre / (m_Npre-1.0)
+
+    m_sum_pre += obs;
+
   }
 
   void add_post(const int obs)
@@ -121,73 +99,81 @@ private:
     {
       Rcpp::stop("Logic error: add_post called for a paired analysis");
     }
+
+    // If needed, store the data:
+    if constexpr(s_store_count)
+    {
+      if(m_Npost >= m_maxN)
+      {
+        Rcpp::stop("Max storage capacity exceeded for post-treatment data");
+      }
+      m_post[m_Npost] = obs;
+    }
+
+    m_Npost++;
+
+		double delta = obs - m_mean_post;
+    m_mean_post += delta / static_cast<double>(m_Npost);
+		m_varnum_post += delta * (obs - m_mean_post);
+    // Variance = m_varnum_post / (m_Npost-1.0)
+
+    m_sum_post += obs;
+
+  }
+
+  void add_pair(const int pre, const int post)
+  {
+    if constexpr(!t_paired)
+    {
+      add_pre(pre);
+      add_post(post);
+    }
     else
     {
       // If needed, store the data:
       if constexpr(s_store_count)
       {
-        if(m_n_post > m_maxN)
+        if(m_N > m_maxN)
         {
-          Rcpp::stop("Max storage capacity exceeded for post-treatment data");
+          Rcpp::stop("Max storage capacity exceeded");
         }
-        m_post[m_n_post] = obs;
+        m_pre[m_N] = pre;
+        m_post[m_N] = post;
       }
 
-      m_n_post++;
+      m_N++;
 
-  		double delta = obs - m_mean_post;
-      m_mean_post += delta / static_cast<double>(m_n_post);
-  		m_varnum_post += delta * (obs - m_mean_post);
-      // Variance = m_varnum_post / (m_n_post-1.0)
+  		double delta1 = pre - m_mean_pre;
+  		double delta2 = post - m_mean_post;
 
-      m_sum_post += obs;
-    }
-  }
+      m_mean_pre += delta1 / static_cast<double>(m_N);
+  		m_varnum_pre += delta1 * (pre - m_mean_pre);
+      // Variance = m_varnum_pre / (m_N-1.0)
 
-  void add_pair(const int pre, const int post)
-  {
-    // If needed, store the data:
-    if constexpr(s_store_count)
-    {
-      if(m_n_pre > m_maxN || m_n_post > m_maxN)
-      {
-        Rcpp::stop("Max storage capacity exceeded");
-      }
-      m_pre[m_n_pre] = pre;
-      m_post[m_n_post] = post;
-    }
+      m_mean_post += delta2 / static_cast<double>(m_N);
+  		m_varnum_post += delta2 * (post - m_mean_post);
+      // Variance = m_varnum_post / (m_N-1.0)
 
-    m_n_pre++;
-    m_n_post++;
-
-		double delta1 = pre - m_mean_pre;
-		double delta2 = post - m_mean_post;
-
-    m_mean_pre += delta1 / static_cast<double>(m_n_pre);
-		m_varnum_pre += delta1 * (pre - m_mean_pre);
-    // Variance = m_varnum_pre / (m_n_pre-1.0)
-
-    m_mean_post += delta2 / static_cast<double>(m_n_post);
-		m_varnum_post += delta2 * (post - m_mean_post);
-    // Variance = m_varnum_post / (m_n_post-1.0)
-
-    if constexpr(t_paired)
-    {
-      // Note: m_n_pre == m_n_post
-      const double iip1 = static_cast<double>(m_n_pre-1L) / static_cast<double>(m_n_pre);
+      const double iip1 = static_cast<double>(m_N-1L) / static_cast<double>(m_N);
       m_covnum += delta1 * delta2 * iip1;
-      // Coariance = m_covnum / (m_n_pre-1.0)
-    }
+      // Coariance = m_covnum / (m_N-1.0)
 
-    m_sum_pre += pre;
-    m_sum_post += post;
+      m_sum_pre += pre;
+      m_sum_post += post;
+
+    }
   }
 
-  void estimate_dobson(double& lci, double& uci) const
+  void estimate_mle(double& lci, double& uci) const
   {
-    if constexpr(t_paired)
+    if(m_var_pre <= 0.0 || m_var_post <= 0.0)
     {
-      if(m_sum_post < m_sum_pre)
+      uci = NA_REAL;
+      lci = NA_REAL;
+    }
+    else if constexpr(t_paired)
+    {
+      if(m_sum_post > m_sum_pre)
       {
         lci = NA_REAL;
         uci = NA_REAL;
@@ -195,9 +181,9 @@ private:
       else
       {
       	const double postsumd = static_cast<double>(m_sum_post);
-      	double sumdiffd = static_cast<double>(m_sum_pre - m_sum_post);
-      	lci = 1.0 - R::qbeta(m_lci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], false, false);
-      	uci = 1.0 - R::qbeta(m_uci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], false, false);
+      	const double sumdiffd = static_cast<double>(m_sum_pre - m_sum_post);
+      	lci = 1.0 - R::qbeta(m_lci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], 0L, 0L);
+      	uci = 1.0 - R::qbeta(m_uci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], 0L, 0L);
       }
     }
     else
@@ -209,36 +195,103 @@ private:
 
   void estimate_waavp(double& lci, double& uci) const
   {
-//  void waavp_p_ci(double mu1, double mu2, double var1, double var2, double cov12, int N, double tail, double *ci_l, double *ci_u){
-
-
-    if constexpr(t_paired)
+    if(m_var_pre <= 0.0 || m_var_post <= 0.0)
     {
-      /*
+      uci = NA_REAL;
+      lci = NA_REAL;
+    }
+    else if constexpr(t_paired)
+    {
   	// Method B of Lyndal-Murphy, M., Swain, a J., & Pepper, P. M. (2014). Methods to determine resistance to anthelmintics when continuing larval development occurs. Veterinary Parasitology, 199(3–4), 191–200. https://doi.org/10.1016/j.vetpar.2013.11.002
 
-    	const int df = m_N -1;
+    	const double df = static_cast<double>(m_N - 1L);
     	// Signature of qt is:  double  qt(double, double, int, int);
-    	double tval = R::qt(1.0 - tail, (double) df, 1, 0);
+    	const double tval = R::qt(1.0 - m_tail, df, 1L, 0L);
 
-    	double Nd = (double) N;
-    	double varred = var1 / (Nd * mu1 * mu1) + var2 / (Nd * mu2 * mu2) - 2.0 * cov12 / (Nd * mu1 * mu2);
+    	const double Nd = static_cast<double>(m_N);
+    	// const double varred = var1 / (Nd * mu1 * mu1) + var2 / (Nd * mu2 * mu2) - 2.0 * cov12 / (Nd * mu1 * mu2);
+    	const double varred = m_var_pre / (Nd * m_mean_pre * m_mean_pre) + m_var_post / (Nd * m_mean_post * m_mean_post) - 2.0 * m_cov / (Nd * m_mean_pre * m_mean_post);
 
-    	*ci_u = 1 - (mu2 / mu1 * std::exp(-tval * std::sqrt(varred)));
-    	*ci_l = 1 - (mu2 / mu1 * std::exp(tval * std::sqrt(varred)));
-*/
+    	uci = 1.0 - (m_mean_post / m_mean_pre * std::exp(-tval * std::sqrt(varred)));
+    	lci = 1.0 - (m_mean_post / m_mean_pre * std::exp(tval * std::sqrt(varred)));
     }
-
-
+    else
+    {
+    	// Method A of Lyndal-Murphy, M., Swain, a J., & Pepper, P. M. (2014). Methods to determine resistance to anthelmintics when continuing larval development occurs. Veterinary Parasitology, 199(3–4), 191–200. https://doi.org/10.1016/j.vetpar.2013.11.002
+	
+    	const double df = static_cast<double>(m_Npre + m_Npost - 2L);
+    	// Signature of qt is:  double  qt(double, double, int, int);
+    	const double tval = R::qt(1.0 - m_tail, df, 1L, 0L);
+	
+    	// const double varred = var1 / (N1d * mu1 * mu1) + var2 / (N2d * mu2 * mu2);
+    	const double varred = m_var_pre / (static_cast<double>(m_Npre) * m_mean_pre * m_mean_pre) + m_var_post / (static_cast<double>(m_Npost) * m_mean_post * m_mean_post);
+	
+    	uci = 1.0 - (m_mean_post / m_mean_pre * std::exp(-tval * std::sqrt(varred)));
+    	lci = 1.0 - (m_mean_post / m_mean_pre * std::exp(tval * std::sqrt(varred)));
+    }
   }
+  
+  void estimate_levecke(double& lci, double& uci) const
+  {
+    if(m_var_pre <= 0.0 || m_var_post <= 0.0)
+    {
+      uci = NA_REAL;
+      lci = NA_REAL;
+    }
+    else if constexpr(t_paired)
+    {
+      if(m_sum_post > m_sum_pre)
+      {
+        lci = NA_REAL;
+        uci = NA_REAL;
+      }
+      else
+      {
+      	const double postsumd = static_cast<double>(m_sum_post);
+      	const double sumdiffd = static_cast<double>(m_sum_pre - m_sum_post);
+      	lci = 1.0 - R::qbeta(m_lci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], 0L, 0L);
+      	uci = 1.0 - R::qbeta(m_uci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], 0L, 0L);
+      }
+    }
+    else
+    {
+      lci = NA_REAL;
+      uci = NA_REAL;
+    }
+  }
+
+  void estimate_dobson(double& lci, double& uci) const
+  {
+    if constexpr(t_paired)
+    {
+      if(m_sum_post > m_sum_pre)
+      {
+        lci = NA_REAL;
+        uci = NA_REAL;
+      }
+      else
+      {
+      	const double postsumd = static_cast<double>(m_sum_post);
+      	const double sumdiffd = static_cast<double>(m_sum_pre - m_sum_post);
+      	lci = 1.0 - R::qbeta(m_lci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], 0L, 0L);
+      	uci = 1.0 - R::qbeta(m_uci, postsumd+m_dobson_priors[0L], sumdiffd+m_dobson_priors[1L], 0L, 0L);
+      }
+    }
+    else
+    {
+      lci = NA_REAL;
+      uci = NA_REAL;
+    }
+  }
+
 
 public:
   estimator(const size_t maxN, const double mean_ratio, const double H0_1, const double H0_2,
-    const double lci, const double uci, const std::array<double, 2L> conjugate_priors, const optswitch delta,
+    const double tail, const std::array<double, 2L> conjugate_priors, const optswitch delta,
     const int beta_iters, const optswitch approx, const std::array<double, 2L> dobson_priors,
     const double true_effk_pre, const double true_effk_post) :
     m_maxN(maxN), m_mean_ratio(mean_ratio), m_H0_1(H0_1), m_H0_2(H0_2),
-    m_lci(lci), m_uci(uci), m_conjugate_priors(conjugate_priors), m_delta(delta),
+    m_tail(tail), m_lci(tail), m_uci(1.0 - tail), m_conjugate_priors(conjugate_priors), m_delta(delta),
     m_beta_iters(beta_iters), m_approx(approx), m_dobson_priors(dobson_priors),
     m_true_effk_pre(true_effk_pre), m_true_effk_post(true_effk_post)
   {
@@ -298,6 +351,12 @@ public:
     m_varnum_pre = 0.0;
     m_varnum_post = 0.0;
     m_covnum = 0.0;
+    
+    m_var_pre = NA_REAL;
+    m_var_post = NA_REAL;
+    m_cov = NA_REAL;
+    m_effk_pre = NA_REAL;
+    m_effk_post = NA_REAL;
 
     if constexpr(t_paired)
     {
@@ -309,8 +368,6 @@ public:
       m_Npost = 0L;
     }
 
-    m_n_pre = 0L;
-    m_n_post = 0L;
   }
 
   void push_pre(const int obs)
@@ -366,15 +423,28 @@ public:
   void estimate(double& efficacy, double& p1, double& p2)
   {
     // Update internally stored variance:
-    m_var_pre = m_varnum_pre / static_cast<double>(m_n_pre-1L);
-    m_var_post = m_varnum_post / static_cast<double>(m_n_post-1L);
-    m_cov = m_covnum / static_cast<double>(m_n_pre-1L); // if paired then m_n_pre==m_n_post
+    if constexpr(t_paired)
+    {
+      m_var_pre = m_varnum_pre / static_cast<double>(m_N-1L);
+      m_var_post = m_varnum_post / static_cast<double>(m_N-1L);
+      m_cov = m_covnum / static_cast<double>(m_N-1L);
+    }
+    else
+    {
+      m_var_pre = m_varnum_pre / static_cast<double>(m_Npre-1L);
+      m_var_post = m_varnum_post / static_cast<double>(m_Npost-1L);
+    }
 
     // Estimate k if necessary:
     if constexpr(t_ktype == ktypes::fix)
     {
       m_effk_pre = m_true_effk_pre;
       m_effk_post = m_true_effk_post;
+    }
+    else if constexpr(t_ktype == ktypes::mm)
+    {
+      m_effk_pre = m_true_effk_pre;
+      m_effk_post = m_true_effk_post;      
     }
     else
     {
@@ -390,15 +460,28 @@ public:
     double conjugate_priors[2] = { m_conjugate_priors[0L], m_conjugate_priors[1L] };
     double p_1 = 0.0;
     double p_2 = 0.0;
+    
+    int n_pre;
+    int n_post;
+    if constexpr(t_paired)
+    {
+      n_pre = m_Npre;
+      n_post = m_Npost;
+    } 
+    else
+    {
+      n_pre = m_N;
+      n_post = m_N;
+    }
 
-    int bnbfailed = bnb_pval(m_sum_pre, m_n_pre, m_effk_pre, m_mean_pre, m_var_pre, m_sum_post, m_n_post, m_effk_post, m_mean_post, m_var_post, m_cov,
+    int bnbfailed = bnb_pval(m_sum_pre, n_pre, m_effk_pre, m_mean_pre, m_var_pre, m_sum_post, n_post, m_effk_post, m_mean_post, m_var_post, m_cov,
                             m_mean_ratio, m_H0_1, m_H0_2, conjugate_priors, delta, m_beta_iters, approx, &p_1, &p_2);
     p1 = p_1;
     p2 = p_2;
 
   }
 
-  void estimate(double& efficacy, double& bnb_p1, double& bnb_p2, double& waavp_lci, double& waavp_uci, double& mle_lci, double& mle_uci,
+  void estimate(double& efficacy, double& bnb_p1, double& bnb_p2, double& mle_lci, double& mle_uci, double& waavp_lci, double& waavp_uci, 
                 double& levecke_lci, double& levecke_uci, double& dobson_lci, double& dobson_uci)
   {
     if constexpr(!t_all_methods)
@@ -406,22 +489,23 @@ public:
       Rcpp::stop("Unable to call full estimate function when !t_all_methods");
     }
 
-    // Delegate k estimation and Denwood method:
+    // Delegate var/cov/k estimation and Denwood method:
     estimate(efficacy, bnb_p1, bnb_p2);
 
-    // etc:
-    // estimate_dobson(dobson_lci, dobson_uci);
-
-
+    // And then do the other methods:
+    estimate_mle(mle_lci, mle_uci);
+    estimate_waavp(waavp_lci, waavp_uci);
+    estimate_levecke(levecke_lci, levecke_uci);
+    estimate_dobson(dobson_lci, dobson_uci);
   }
 
   Rcpp::NumericVector estimate()
   {
-    if(m_n_pre == 0L)
+    if(m_N+m_Npre < 0L )
     {
       Rcpp::stop("Can't estimate: no pre-treatment data!");
     }
-    if(m_n_post == 0L)
+    if(m_N+m_Npost == 0L)
     {
       Rcpp::stop("Can't estimate: no post-treatment data!");
     }

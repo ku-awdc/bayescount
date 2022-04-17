@@ -74,7 +74,7 @@ Rcpp::IntegerMatrix draw_count(const int n, const Rcpp::NumericVector& mu, const
 }
 
 Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector& post, const bool paired, const std::string& k_type,
-                                    const double mean_ratio, const double H0_1, const double H0_2, const double lci, const double uci,
+                                    const double mean_ratio, const double H0_1, const double H0_2, const double tail,
                                     const Rcpp::NumericVector& conjugate_priors, const std::string& delta, const int beta_iters,
                                     const std::string& approx, const Rcpp::NumericVector& dobson_priors, const double true_effk_pre,
                                     const double true_effk_post)
@@ -127,7 +127,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
 	/*
   template<bool t_paired, bool t_all_methods, ktypes t_ktype, typename t_cont_type, containers t_container, size_t t_rvlen>
 	estimator(const size_t maxN, const double mean_ratio, const double H0_1, const double H0_2,
-		const double lci, const double uci, const std::array<double, 2L> conjugate_priors, const optswitch delta,
+		const double tail, const std::array<double, 2L> conjugate_priors, const optswitch delta,
 		const int beta_iters, const optswitch approx, const std::array<double, 2L> dobson_priors,
 		const double true_effk_pre, const double true_effk_post)
 	 */
@@ -142,7 +142,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     if(k_type=="fix")
     {
       estimator<true, false, ktypes::fix, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_fix>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
@@ -151,7 +151,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     else if(k_type=="mm")
     {
       estimator<true, true, ktypes::mm, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
@@ -160,7 +160,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     else if(k_type=="ql")
     {
       estimator<true, true, ktypes::ql, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
@@ -169,7 +169,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     else if(k_type=="ml")
     {
       estimator<true, true, ktypes::ml, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
@@ -188,7 +188,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     if(k_type=="fix")
     {
       estimator<false, false, ktypes::fix, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_fix>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
@@ -197,7 +197,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     else if(k_type=="mm")
     {
       estimator<false, true, ktypes::mm, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
@@ -206,7 +206,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     else if(k_type=="ql")
     {
       estimator<false, true, ktypes::ql, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
@@ -215,7 +215,7 @@ Rcpp::NumericVector estimate_fecrt(Rcpp::IntegerVector& pre, Rcpp::IntegerVector
     else if(k_type=="ml")
     {
       estimator<false, true, ktypes::ml, Rcpp::IntegerVector, containers::rcppvector, s_rvlen_all>
-        estr(maxN, mean_ratio, H0_1, H0_2, lci, uci, conjugate_priors_arr, deltaenum, beta_iters,
+        estr(maxN, mean_ratio, H0_1, H0_2, tail, conjugate_priors_arr, deltaenum, beta_iters,
               approxenum, dobson_priors_arr, true_effk_pre, true_effk_post);
 
       estr.push_multiple(pre, post);
