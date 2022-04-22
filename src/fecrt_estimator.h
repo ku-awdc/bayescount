@@ -16,6 +16,9 @@
 // estimator class could have methods to add data 1 point at a time (running mean) or as an array or as a vector
 // this means the newton rhapson function should be templated (or included as a method within estimator class??)
 
+// TODO: fecrt_estimator does the estimation methods (including all BNB stuff)
+//        fecrt_summariser does the count storage and mean/var/cov/k estimation
+
 
 template<bool t_paired, bool t_all_methods, ktypes t_ktype, typename t_cont_type, containers t_container, size_t t_rvlen>
 class estimator
@@ -50,6 +53,7 @@ private:
   double m_varnum_post = 0.0;
   double m_covnum = 0.0;
 
+  // TODO: nest std::conditional to get correct child class for fecrt_summariser (paired or not)?
   // Temporary solution - will be replaced with data_storage class:
   using type_paired = std::conditional_t<t_paired, size_t, const size_t>;
   using type_unpaired = std::conditional_t<t_paired, const size_t, size_t>;
