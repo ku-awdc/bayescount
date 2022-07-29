@@ -9,7 +9,7 @@
 #include "distribution.h"
 #include "estimator.h"
 
-// TODO: an estimater class that sets up the estimation method and potentially stores pre and post internally
+// TODO: an estimator class that sets up the estimation method and potentially stores pre and post internally
 // Then this gets passed to simulation, so that simulation doesn't need to store counts or do any estimating itself
 // estimator class could have methods to add data 1 point at a time (running mean) or as an array or as a vector
 // this means the newton rhapson function should be templated (or included as a method within estimator class??)
@@ -19,7 +19,7 @@ class simulation
 {
 private:
   static constexpr size_t s_dim = 2L;
-  
+
   const Rcpp::IntegerVector& m_Ns;
   const std::array<const double, s_dim> m_mu;
   const std::array<const double, s_dim> m_cv;
@@ -27,7 +27,7 @@ private:
   const size_t m_maxN;
   const distribution<t_dist> m_distribution;
 
-  // Note: these are not actually needed if analyses::*_fixcv, but I could cheat and use 
+  // Note: these are not actually needed if analyses::*_fixcv, but I could cheat and use
   std::array<int, t_maxNarr> m_pre;
   std::array<int, t_maxNarr> m_post;
 
@@ -37,7 +37,7 @@ public:
   {
     if(m_maxN > t_maxNarr) Rcpp::stop("Invalid max Ns > maxN");
     // TODO: check Ns is sorted
-    
+
     if(t_analysis == analyses::bnb_fixcv || t_analysis == analyses::bnb_estcv)
     {
       if(t_rvlen != 2L) Rcpp::stop("Invalid t_rvlen for analysis = bnb_*");
@@ -53,14 +53,14 @@ public:
       const std::array<const int, s_dim> rv = m_distribution.draw();
       m_pre[i] = rv[0L];
       m_post[i] = rv[1L];
-      
+
       if(i==m_Ns[ndone])
       {
-        
+
         ndone++;
       }
     }
-    
+
     std::array<double, t_rvlen> rv;
     return rv;
   }
