@@ -43,6 +43,7 @@ RCPP_MODULE(bayescount_module){
   function("Rcpp_draw_lambda", &draw_lambda);
   function("Rcpp_draw_count", &draw_count);
   function("Rcpp_estimate_fecrt", &estimate_fecrt);
+  function("Rcpp_summarise_fecrt", &summarise_fecrt);
 
     /*
 	class_<estimator_pair_unfix>("Rcpp_estimator_pair_unfix")

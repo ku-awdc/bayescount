@@ -17,6 +17,8 @@ dobson_priors <- c(1.0,1.0)
 true_effk_pre <- 1.0
 true_effk_post <- 1.0
 
+
+bayescount:::Rcpp_summarise_fecrt(pre, post, FALSE, "ml")
 bayescount:::Rcpp_estimate_fecrt(pre, post, paired, k_type, mean_ratio, H0_1, H0_2, tail, conjugate_priors, delta, beta_iters, approx, dobson_priors, true_effk_pre, true_effk_post)
 
 

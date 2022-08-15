@@ -3,7 +3,7 @@
 
 enum class dists { nbinom, mvnbinom, lnormpois, mvlnormpois, poisson };
 enum class containers { stdarray, stdvector, rcppvector };
-enum class ktypes { fix, mm, ql, ml };
+enum class ktypes { flex, fix, mm, ql, ml };
 enum class optswitch { never, sometimes, always};
 
 
