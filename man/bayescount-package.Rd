@@ -7,12 +7,7 @@
 \alias{bayescountpackage}
 \title{bayescount: Statistical Analyses and Sample Size Calculations for Over-dispersed Count Data}
 \description{
-A set of functions and interactive Shiny apps to allow analysis of
-    over-dispersed count data such as that associated with egg reduction rate
-    (ERR) and faecal egg count reduction test (FECRT) studies in parasitology.
-    Functions and apps are also provided to assist in sample size calculations
-    for future studies.  A working installation of JAGS is required for
-    MCMC-based methods (see <http://mcmc-jags.sourceforge.net>).
+A set of functions and interactive Shiny apps to allow analysis of over-dispersed count data such as that associated with egg reduction rate (ERR) and faecal egg count reduction test (FECRT) studies in parasitology. Functions and apps are also provided to assist in sample size calculations for future studies. A working installation of JAGS is required for MCMC-based methods (see \url{http://mcmc-jags.sourceforge.net}).
 
 A full description of the main functions in this package is given in the package vignette:
 vignette("bayescount", package="bayescount")

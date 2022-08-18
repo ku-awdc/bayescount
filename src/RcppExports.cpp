@@ -11,11 +11,38 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// fecrt_sim_paired_LP
+Rcpp::DataFrame fecrt_sim_paired_LP(int iters, Rcpp::NumericVector red, int N, double mu, double cv_pre, double cv_post, double ncor, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors);
+RcppExport SEXP _bayescount_fecrt_sim_paired_LP(SEXP itersSEXP, SEXP redSEXP, SEXP NSEXP, SEXP muSEXP, SEXP cv_preSEXP, SEXP cv_postSEXP, SEXP ncorSEXP, SEXP thresholdsSEXP, SEXP conjugate_priorsSEXP, SEXP deltaSEXP, SEXP beta_itersSEXP, SEXP approxSEXP, SEXP tailSEXP, SEXP usemlSEXP, SEXP dobson_clSEXP, SEXP dobson_priorsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type iters(itersSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type red(redSEXP);
+    Rcpp::traits::input_parameter< int >::type N(NSEXP);
+    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< double >::type cv_pre(cv_preSEXP);
+    Rcpp::traits::input_parameter< double >::type cv_post(cv_postSEXP);
+    Rcpp::traits::input_parameter< double >::type ncor(ncorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type thresholds(thresholdsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type conjugate_priors(conjugate_priorsSEXP);
+    Rcpp::traits::input_parameter< int >::type delta(deltaSEXP);
+    Rcpp::traits::input_parameter< int >::type beta_iters(beta_itersSEXP);
+    Rcpp::traits::input_parameter< int >::type approx(approxSEXP);
+    Rcpp::traits::input_parameter< double >::type tail(tailSEXP);
+    Rcpp::traits::input_parameter< bool >::type useml(usemlSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type dobson_cl(dobson_clSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type dobson_priors(dobson_priorsSEXP);
+    rcpp_result_gen = Rcpp::wrap(fecrt_sim_paired_LP(iters, red, N, mu, cv_pre, cv_post, ncor, thresholds, conjugate_priors, delta, beta_iters, approx, tail, useml, dobson_cl, dobson_priors));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 RcppExport SEXP _rcpp_module_boot_rcpp_module();
 RcppExport SEXP _rcpp_module_boot_bayescount_module();
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_bayescount_fecrt_sim_paired_LP", (DL_FUNC) &_bayescount_fecrt_sim_paired_LP, 16},
     {"_rcpp_module_boot_rcpp_module", (DL_FUNC) &_rcpp_module_boot_rcpp_module, 0},
     {"_rcpp_module_boot_bayescount_module", (DL_FUNC) &_rcpp_module_boot_bayescount_module, 0},
     {NULL, NULL, 0}

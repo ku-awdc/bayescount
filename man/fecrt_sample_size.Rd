@@ -22,9 +22,6 @@ fecrt_sample_size(
 \arguments{
 \item{cor}{}
 }
-\value{
-
-}
 \description{
 Title
 }

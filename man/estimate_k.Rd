@@ -5,25 +5,17 @@
 \title{Title}
 \usage{
 estimate_k(
-  Nrange = c(5, 100),
-  EPGrange = c(50, 1000),
-  EDT = c(1, 2.5, 5, 10, 25, 50),
-  target = 0.99,
-  margin = c(0.04, 0.09),
-  k1 = 1,
-  k2 = 0.6,
-  cor = 0.3,
-  Nlength = 50,
-  mulength = 20,
-  EPGlength = 100,
-  iters = 1000L
+  data_1,
+  data_2,
+  paired = TRUE,
+  k_ratio = 1,
+  min = 0.001,
+  max = 20,
+  tol = 0.01
 )
 }
 \arguments{
 \item{cor}{}
-}
-\value{
-
 }
 \description{
 Title

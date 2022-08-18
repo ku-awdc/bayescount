@@ -78,49 +78,60 @@ private:
   }
   */
 
-  /*
-  void estimate_waavp(double& lci, double& uci) const
+  std::array<double, 2L> estimate_waavp(const double N_pre, const double N_post,
+                                        const double mean_pre, const double mean_post,
+                                        const double var_pre, const double var_post,
+                                        const double cov) const
   {
+  	std::array<double, 2L> rv;
+
     if(var_pre <= 0.0 || var_post <= 0.0)
     {
-      uci = NA_REAL;
-      lci = NA_REAL;
+      rv[0L] = NA_REAL;
+    	rv[1L] = NA_REAL;
     }
     else if constexpr(t_paired)
     {
   	// Method B of Lyndal-Murphy, M., Swain, a J., & Pepper, P. M. (2014). Methods to determine resistance to anthelmintics when continuing larval development occurs. Veterinary Parasitology, 199(3–4), 191–200. https://doi.org/10.1016/j.vetpar.2013.11.002
 
-    	const double df = static_cast<double>(m_N - 1L);
+    	const double df = N_pre - 1.0;
     	// Signature of qt is:  double  qt(double, double, int, int);
     	const double tval = R::qt(1.0 - m_tail, df, 1L, 0L);
 
-    	const double Nd = static_cast<double>(m_N);
+    	const double Nd = N_pre;  // Will be equal to N_post
     	// const double varred = var1 / (Nd * mu1 * mu1) + var2 / (Nd * mu2 * mu2) - 2.0 * cov12 / (Nd * mu1 * mu2);
-    	const double varred = var_pre / (Nd * m_mean_pre * m_mean_pre) + var_post / (Nd * m_mean_post * m_mean_post) - 2.0 * m_cov / (Nd * m_mean_pre * m_mean_post);
+    	const double varred = var_pre / (Nd * mean_pre * mean_pre) + var_post / (Nd * mean_post * mean_post) - 2.0 * cov / (Nd * mean_pre * mean_post);
 
-    	uci = 1.0 - (m_mean_post / m_mean_pre * std::exp(-tval * std::sqrt(varred)));
-    	lci = 1.0 - (m_mean_post / m_mean_pre * std::exp(tval * std::sqrt(varred)));
+    	rv[1L] = 1.0 - (mean_post / mean_pre * std::exp(-tval * std::sqrt(varred)));
+    	rv[0L] = 1.0 - (mean_post / mean_pre * std::exp(tval * std::sqrt(varred)));
     }
     else
     {
     	// Method A of Lyndal-Murphy, M., Swain, a J., & Pepper, P. M. (2014). Methods to determine resistance to anthelmintics when continuing larval development occurs. Veterinary Parasitology, 199(3–4), 191–200. https://doi.org/10.1016/j.vetpar.2013.11.002
 
-    	const double df = static_cast<double>(m_Npre + m_Npost - 2L);
+    	const double df = N_pre + N_post - 2.0;
     	// Signature of qt is:  double  qt(double, double, int, int);
     	const double tval = R::qt(1.0 - m_tail, df, 1L, 0L);
 
     	// const double varred = var1 / (N1d * mu1 * mu1) + var2 / (N2d * mu2 * mu2);
-    	const double varred = var_pre / (static_cast<double>(m_Npre) * m_mean_pre * m_mean_pre) + var_post / (static_cast<double>(m_Npost) * m_mean_post * m_mean_post);
+    	const double varred = var_pre / (N_pre * mean_pre * mean_pre) + var_post / (N_post * mean_post * mean_post);
 
-    	uci = 1.0 - (m_mean_post / m_mean_pre * std::exp(-tval * std::sqrt(varred)));
-    	lci = 1.0 - (m_mean_post / m_mean_pre * std::exp(tval * std::sqrt(varred)));
+    	rv[1L] = 1.0 - (mean_post / mean_pre * std::exp(-tval * std::sqrt(varred)));
+    	rv[0L] = 1.0 - (mean_post / mean_pre * std::exp(tval * std::sqrt(varred)));
     }
+
+    return rv;
   }
-  */
 
   /*
-  void estimate_levecke(double& lci, double& uci) const
+  void estimate_levecke(const double N_pre, const double N_post,
+   const double mean_pre, const double mean_post,
+   const double var_pre, const double var_post,
+   const double cov, double& lci, double& uci) const
   {
+   // void levecke_u_ci(double mu1, double mu2, double var1, double var2, int N1, int N2, double tail, double *ci_l, double *ci_u);
+   // void levecke_p_ci(double mu1, double mu2, double var1, double var2, double cov12, int N, double tail, double *ci_l, double *ci_u);
+
     if(var_pre <= 0.0 || var_post <= 0.0)
     {
       uci = NA_REAL;
