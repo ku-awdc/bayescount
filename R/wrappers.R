@@ -159,7 +159,7 @@ powersim_unpaired <- function(rvs=seq(0,0.2,by=0.001), N=20, mu=20, k1=1, k2=0.7
 }
 
 #' @export
-powersim_paired_LP <- function(rvs=seq(0,0.2,by=0.001), N=20, mu=20, cv1=1, cv2=0.7, ncor=0.2, ta=0.9, ti=0.95, iters=10^3, approx=1, priors=c(0,0), useml=FALSE, dobson_cl=c(0.005,0.995), dobson_priors=c(1,1), pm=c('BNB','Levecke','MLE','WAAVP','Dobson'), plot=TRUE){
+powersim_paired_LP <- function(rvs=seq(0,0.2,by=0.001), N=20, mu=20, cv1=1, cv2=0.7, ncor=0.2, ta=0.9, ti=0.95, iters=10^3, approx=1, priors=c(0,0), useml=FALSE, uselp=TRUE, dobson_cl=c(0.005,0.995), dobson_priors=c(1,1), pm=c('BNB','Levecke','MLE','WAAVP','Dobson'), plot=TRUE){
 
 	stopifnot(ta >= min(1-rvs) && ta <= max(1-rvs))
 	stopifnot(ti >= min(1-rvs) && ti <= max(1-rvs))
@@ -171,7 +171,7 @@ powersim_paired_LP <- function(rvs=seq(0,0.2,by=0.001), N=20, mu=20, cv1=1, cv2=
 	# Note: cvs are unadjusted, ncor is correlation in bivariate normal
 
 	t <- Sys.time()
-	res <- fecrt_sim_paired_LP(as.integer(iters), as.double(rvs), as.integer(N), as.double(mu), as.double(cv1), as.double(cv2), as.double(ncor), matrix(as.double(c(ta,ti)), ncol=2, byrow=TRUE), as.double(priors), as.integer(1), as.integer(10000), as.integer(approx), as.double(0.025), as.logical(useml), as.double(dobson_cl), as.double(dobson_priors))
+	res <- fecrt_sim_paired_LP(as.integer(iters), as.double(rvs), as.integer(N), as.double(mu), as.double(cv1), as.double(cv2), as.double(ncor), matrix(as.double(c(ta,ti)), ncol=2, byrow=TRUE), as.double(priors), as.integer(1), as.integer(10000), as.integer(approx), as.double(0.025), as.logical(useml), as.double(dobson_cl), as.double(dobson_priors), as.logical(uselp))
 	print(difftime(Sys.time(), t))
 
 	if(!plot){

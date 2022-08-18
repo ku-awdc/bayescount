@@ -1053,7 +1053,7 @@ RCPP_MODULE(rcpp_module){
 
 
 // [[Rcpp::export]]
-Rcpp::DataFrame fecrt_sim_paired_LP(int iters, Rcpp::NumericVector red, int N, double mu, double cv_pre, double cv_post, double ncor, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+Rcpp::DataFrame fecrt_sim_paired_LP(int iters, Rcpp::NumericVector red, int N, double mu, double cv_pre, double cv_post, double ncor, Rcpp::NumericMatrix thresholds, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, int approx, double tail, bool useml, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors, bool uselp)
 {
 
 	// Check that the thresholds have 2 columns and >0 rows:
@@ -1116,7 +1116,9 @@ Rcpp::DataFrame fecrt_sim_paired_LP(int iters, Rcpp::NumericVector red, int N, d
 	// distribution(const std::array<const double, s_dim> mu, const std::array<const double, s_dim> cv, const double lcor)
 	const std::array<const double, 2L> mus { mu, mu };
 	const std::array<const double, 2L> cvs { cv_pre, cv_post };
-	distribution<dists::mvlnormpois> distn(mus, cvs, ncor);
+
+	distribution<dists::mvlnormpois> distn_lp(mus, cvs, ncor);
+	distribution<dists::mvnbinom> distn_gp(mus, cvs, ncor);
 	// Note: use draw rather than draw_mu and multiply post-tx by reds, then do a Poisson draw
 	// as this is the same thing as repeated lognormal draws and cheaper
 
@@ -1125,11 +1127,21 @@ Rcpp::DataFrame fecrt_sim_paired_LP(int iters, Rcpp::NumericVector red, int N, d
 
 		Rcpp::NumericVector mus_1(N);
 		Rcpp::NumericVector mus_2(N);
-		for(int i=0; i<N; ++i)
+		if(uselp)
 		{
-			std::array<double, 2L> rv = distn.draw_mu();
-			mus_1[i] = rv[0L];
-			mus_2[i] = rv[1L];
+			for(int i=0; i<N; ++i)
+			{
+				std::array<double, 2L> rv = distn_lp.draw_mu();
+				mus_1[i] = rv[0L];
+				mus_2[i] = rv[1L];
+			}
+		}else{
+			for(int i=0; i<N; ++i)
+			{
+				std::array<double, 2L> rv = distn_gp.draw_mu();
+				mus_1[i] = rv[0L];
+				mus_2[i] = rv[1L];
+			}
 		}
 
 		Rcpp::IntegerVector pre_data(N);
@@ -1194,9 +1206,11 @@ Rcpp::DataFrame fecrt_sim_paired_LP(int iters, Rcpp::NumericVector red, int N, d
 			//estk_pre = k_pre / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
 			//estk_post = k_post / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
 
+			/*
 			Rcpp::NumericVector uks = estimate_k(mean_pre, var_pre, mean_post, var_post, 0.0, false);
 			double estk_pre_u = uks[0];
 			double estk_post_u = uks[1];
+			 */
 
 			//			Rcpp::Rcout << cov << " - " << estk_pre << " - " << estk_pre_u << " - " << estk_post << " - " << estk_post_u << "\n";
 
