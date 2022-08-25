@@ -1205,6 +1205,8 @@ Rcpp::DataFrame fecrt_sim_paired_LP(int iters, Rcpp::NumericVector red, int N, d
 			// For cheating:
 			//estk_pre = k_pre / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
 			//estk_post = k_post / (1.0 - (std::sqrt(k_pre) * std::sqrt(k_post) / k_c));
+			estk_pre = 1.0 / (cv_pre*cv_pre);
+			estk_post = 1.0 / (cv_post*cv_post);
 
 			/*
 			Rcpp::NumericVector uks = estimate_k(mean_pre, var_pre, mean_post, var_post, 0.0, false);
