@@ -1,0 +1,52 @@
+---
+title: "Analysis"
+author: "https://www.fecrt.com/"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library("tidyverse")
+library("bayescount")
+```
+
+```{r process, include=FALSE}
+## For testing:
+if(FALSE){
+	host <- "Cattle"
+	parasite <- "Strongyles"
+	version <- "Research"
+	target <- 0.99
+	lower <- 0.95
+	alpha <- 0.05
+	mult_factor <- 1
+	paired <- TRUE
+	k_expect <- c(1,1)
+	cor_expect <- 0.1
+}
+
+## Mandatory parameters:
+# Can data / summary stats / nothing be saved
+# As below
+
+## Optional parameters:
+# Name of submitter
+# Date of sampling (can select test/fictitious)
+# Country
+# Region
+# Label/name of group
+# Description of group
+
+## Load parameters (saved from shiny input):
+nn <- load("parameters.rda")
+stopifnot(all(c("host","parasite","target","lower","alpha","mult_factor","paired","k_expect","cor_expect")) %in% nn)
+
+## Load data:
+data <- readRDS("data.rds")
+
+```
+
+## Overview
+
+This automatically generated report 
