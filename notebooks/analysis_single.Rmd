@@ -1,5 +1,5 @@
 ---
-title: "Analysis"
+title: "FECRT analysis (single dataset)"
 author: "https://www.fecrt.com/"
 date: '`r Sys.Date()`'
 output: html_document
@@ -24,6 +24,8 @@ if(FALSE){
 	paired <- TRUE
 	k_expect <- c(1,1)
 	cor_expect <- 0.1
+	
+	versionstring <- "the online tool at https://www.fecrt.com (version 0.1)"
 }
 
 ## Mandatory parameters:
@@ -45,8 +47,12 @@ stopifnot(all(c("host","parasite","target","lower","alpha","mult_factor","paired
 ## Load data:
 data <- readRDS("data.rds")
 
+conclusion <- "resistant"
 ```
 
 ## Overview
 
-This automatically generated report 
+The overall conclusion for the data provided is `r conclusion`, based on `r conf`\% confidence intervals of . 
+
+This automatically generated report was produced by `r versionstring` on `r as.character(Sys.Date())`.
+
