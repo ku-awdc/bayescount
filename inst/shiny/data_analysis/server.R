@@ -1,339 +1,350 @@
-# TODO:  add pooling and individuals per pool (pre and post?) questions and adjust reported k, and change prob_priors
-
-initl <- "<br><h4>Error: Data inputs have not been initialised</h4>"
-blankdf <- data.frame(Data=numeric(0))
-
 function(input, output, session) {
 
-	rv <- reactiveValues(predata = blankdf, postdata = blankdf, prebackup = blankdf, postbackup = blankdf, summaries="Select study design and enter data before calculating results!", initerrors="", dataerrors="", showreset=1, showresults=0, datainit=0, prelabel=initl, postlabel=initl, scalelabel="", prestr="control group / pre-treatment", poststr="treatment group / post-treatment", edt1=1, edt2=1)
+  rv <- reactiveValues(
+    data_paired = data.frame(PreTreatment=integer(0),PostTreatment=integer(0)),
+    data_txt = data.frame(),
+    data_ctl = data.frame(),
+    data_demo = data.frame(),
+    status = 0L,
+    status_feedback = status_feedback[1],
+    result_summary = ""
+  )
+  ## Note: statuses are:
+  ## 0: nothing
+  ## 1: N input (direct input only)
+  ## 2: data input or uploaded
+  ## 3: parameters selected and verified (multiplication factor != 0 etc)
+  ## 4: summary results run
+  ## 5: full results and markdown files generated
 
-	observeEvent(input$reset, {
-		# Required to reset if dims don't change:
-		rv$predata <- NULL
-		rv$postdata <- NULL
-		
-		if(input$type == "Unpaired"){
-			row1 <- input$Ncont
-			row2 <- input$Ntx
-			col1 <- input$Rcont
-			col2 <- input$Rtx
-			edt1 <- input$EDTcont
-			edt2 <- input$EDTtx
-		}else{
-			row1 <- input$Npre
-			row2 <- input$Npost
-			col1 <- input$Rpre
-			col2 <- input$Rpost
-			edt1 <- input$EDTpre
-			edt2 <- input$EDTpost
-		}
-		
-		if(!parasitology){
-			edt1 <- 1
-			edt2 <- 1
-		}
-		
-		prestr <- ifelse(input$type == "Unpaired", "control group", "pre-treatment")
-		poststr <- ifelse(input$type == "Unpaired", "treatment group", "post-treatment")
-		
-		errors <- character(0)
-		if(col1 != col2){
-			errors <- c(errors, paste0("It is currently a requirement that the number of pre-treatment replicates equals the number of post-treatment replicates"))
-		}
-		if(row1 < 5 || round(row1)!=row1){
-			errors <- c(errors, paste0("The ", prestr, " sample size must be a whole number >= 5"))
-		}
-		if(row2 < 5 || round(row2)!=row2){
-			errors <- c(errors, paste0("The ", poststr, " sample size must be a whole number >= 5"))
-		}
-		if(col1 < 1 || round(col1)!=col1){
-			errors <- c(errors, paste0("Zero, negative or non-integer ", prestr, " replicates"))
-		}
-		if(col2 < 1 || round(col2)!=col2){
-			errors <- c(errors, paste0("Zero, negative or non-integer ", poststr, " replicates"))
-		}
-		if(edt1 <= 0){
-			errors <- c(errors, paste0("Zero or negative ", prestr, " egg detection threshold"))
-		}
-		if(edt2 <= 0){
-			errors <- c(errors, paste0("Zero or negative ", poststr, " egg detection threshold"))
-		}
-		if(length(errors)==0){
-			rv$initerrors <- ""
-		}else if(length(errors)==1){
-			rv$initerrors <- paste0("<br>Error:  ", errors)
-			return(1)
-		}else{
-			rv$initerrors <- paste0("<br>Errors:  ", paste(errors, collapse=", "))
-			return(1)
-		}
-		rv$edt1 <- edt1
-		rv$edt2 <- edt2
-		# Don't save row and col here as it could be changed by the user
-		
-		if(testing){
-			newdf <- lapply(1:col1, function(x) rnbinom(row1, 1, mu=15))
-		}else{
-			newdf <- lapply(1:col1, function(x) rep("", row1))
-		}
-		if(col1==1){
-#			names(newdf) <- ifelse(input$type == "Unpaired", "Control", "PreTx")
-			if(parasitology){
-				names(newdf) <- ifelse(input$scale=="Raw Counts", "FEC", "EPG")
-			}else{
-				names(newdf) <- "Count"
-			}
-		}else{
-#			names(newdf) <- paste0(ifelse(input$type == "Unpaired", "Control_Rep", "PreTx_Rep"), 1:col1)
-			names(newdf) <- paste0("Rep_", 1:col1)
-		}
-		rv$predata <- as.data.frame(newdf)
-		rv$prebackup <- rv$predata
-		
-		if(testing){
-			tp <- sample(1:3, 1)
-			if(tp==1) tvals <- 0
-			if(tp==2) tvals <- 0:5
-			if(tp==3) tvals <- 5:15				
-			newdf <- lapply(1:col2, function(x) sample(tvals, row2, TRUE))
-		}else{
-			newdf <- lapply(1:col2, function(x) rep("", row2))
-		}
-		if(col2==1){
-#			names(newdf) <- ifelse(input$type == "Unpaired", "Treatment", "PostTx")
-			if(parasitology){
-				names(newdf) <- ifelse(input$scale=="Raw Counts", "FEC", "EPG")
-			}else{
-				names(newdf) <- "Count"
-			}
-		}else{
-#			names(newdf) <- paste0(ifelse(input$type == "Unpaired", "Treatment_Rep", "PostTx_Rep"), 1:col2)
-			names(newdf) <- paste0("Rep_", 1:col2)
-		}
-		rv$postdata <- as.data.frame(newdf)
-		rv$postbackup <- rv$postdata
-		
-		if(parasitology){
-			scalelabel <- ifelse(input$scale=="Raw Counts", "(Enter data as raw egg counts", "(Enter data as eggs per gram")
-		}else{
-			scalelabel <- "(Enter count data"
-		}
-		if(col1 > 1 || col2 > 1){
-			scalelabel <- paste0(scalelabel, ", with individuals in rows and replicates in columns)")
-		}else{
-			scalelabel <- paste0(scalelabel, ")")
-		}
-		rv$scalelabel <- scalelabel
-		
-		units <- "" #ifelse(edt1==1, "(raw counts)", "(eggs per gram)")
-		rv$prelabel <- paste0(ifelse(input$type == "Unpaired", "<h4>Control Data ", "<h4>Pre-treatment Data "), units, "</h4>")
-		units <- "" #ifelse(edt2==1, "(raw counts)", "(eggs per gram)")
-		rv$postlabel <- paste0(ifelse(input$type == "Unpaired", "<h4>Treatment Data ", "<h4>Post-treatment Data "), units, "</h4>")
-		rv$prestr <- prestr
-		rv$poststr <- poststr
+  settings <- reactiveValues(
+    entryType = "upload",
+    design = "paired",
+    directN_paired = 20,
+    directN_txt = 20,
+    directN_ctl = 20
+  )
 
-		rv$summaries <- ""
-		
-		# The reset buttton and nrow selectors can be hidden by setting to 0:
-		if(!testing)
-			rv$showreset <- 0
-		
-		rv$datainit <- 1
-	})
-	
-	observeEvent(input$calculate, {
-		
-		rv$showresults <- 0
-		rv$dataerrors <- ""
-		
-		if(rv$datainit==0){
-			rv$dataerrors <- paste0("Error: The data inputs have not been initialised")
-			return(1)
-		}
-		if(is.null(input$predata)){
-			rv$dataerrors <- paste0("Error: The ", rv$prestr, " data has not been entered")
-			return(1)
-		}
-		if(is.null(input$postdata)){
-			rv$dataerrors <- paste0("Error: The ", rv$poststr, " data has not been entered")
-			return(1)
-		}
-		
-		te <- try(predata <- hot_to_r(input$predata))
-		if(inherits(te,'try-error')){
-			rv$dataerrors <- paste0("Error: Failed to read the ", rv$prestr, " data - this can happen when manually resizing the table - try entering the data again")
-			rv$predata <- NULL
-			rv$predata <- rv$prebackup
-			return(1)
-		}
-		te <- try(postdata <- hot_to_r(input$postdata))
-		if(inherits(te,'try-error')){
-			rv$dataerrors <- paste0("Error: Failed to read the ", rv$poststr, " data - this can happen when manually resizing the table - try entering the data again")
-			rv$postdata <- NULL
-			rv$postdata <- rv$postbackup
-			return(1)
-		}
-		
-		if(nrow(predata)==0 || ncol(predata)==0){
-			rv$dataerrors <- paste0("Error: Failed to initialise the ", rv$prestr, " data")
-			return(1)
-		}
-		if(nrow(postdata)==0 || ncol(postdata)==0){
-			rv$dataerrors <- paste0("Error: Failed to initialise the ", rv$poststr, " data")
-			return(1)
-		}
-		
-		if(any(is.na(predata)) || any(predata=="")){
-			rv$dataerrors <- paste0("Error: Blank cells detected in the ", rv$prestr, " data")
-			return(1)
-		}
-		if(any(is.na(postdata)) || any(postdata=="")){
-			rv$dataerrors <- paste0("Error: Blank cells detected in the ", rv$poststr, " data")
-			return(1)
-		}
-		
-		predata <- as.matrix(as.data.frame(lapply(predata, as.numeric)))
-		postdata <- as.matrix(as.data.frame(lapply(postdata, as.numeric)))
+  observe({
+    req(input$entryType)
 
-		if(any(is.na(predata))){
-			rv$dataerrors <- paste0("Error: Non-numeric cells detected in the ", rv$prestr, " data")
-			return(1)
-		}
-		if(any(is.na(postdata))){
-			rv$dataerrors <- paste0("Error: Non-numeric cells detected in the ", rv$poststr, " data")
-			return(1)
-		}
-		
-		if(!parasitology || input$scale=="Raw Counts"){
-			
-			if(any(predata%%1 != 0)){
-				rv$dataerrors <- paste0("Error: Non-integer cells detected in the ", rv$prestr, " data")
-				return(1)
-			}
-			if(any(postdata%%1 != 0)){
-				rv$dataerrors <- paste0("Error: Non-integer cells detected in the ", rv$poststr, " data")
-				return(1)
-			}
-			
-		}else{
-			predata <- predata / rv$edt1
-			postdata <- postdata / rv$edt2
-		
-			if(any(predata%%1 != 0)){
-				rv$dataerrors <- paste0("Error: Non-integer cells detected in the ", rv$prestr, " data (after accounting for EDT)")
-				return(1)
-			}
-			if(any(postdata%%1 != 0)){
-				rv$dataerrors <- paste0("Error: Non-integer cells detected in the ", rv$poststr, " data (after accounting for EDT)")
-				return(1)
-			}
-			
-		}
-		
-		if(input$pthresh <= 0 || input$pthresh >= 1){
-			rv$dataerrors <- paste0("Error:  The threshold for significance must be between 0-1")
-			return(1)
-		}
-		if(! input$target < 100 ){
-			rv$dataerrors <- paste0("Error:  The Target Effiacy value must be less than 100%")
-			return(1)
-		}
-		
-		# Now do analyses:
-		
-		premean <- mean(predata) * rv$edt1
-		postmean <- mean(postdata) * rv$edt2
-		
-		Npre <- nrow(predata)
-		Rpre <- ncol(predata)
-		Npost <- nrow(postdata)
-		Rpost <- ncol(postdata)
+    if(input$entryType == "demo"){
+      updateSelectInput(session, "design", selected="paired")
+      updateNumericInput(session, "directN_paired", value=20L)
 
-		paired <- input$type=="Paired"
-		tail <- input$pthresh
-		
-		# TODO: make sure mean_rato works OK
-		mean_ratio <- 1
-		
-		results <- efficacy_analysis(data_1=predata, data_2=postdata, paired=paired, T_I=input$target/100, T_A=(input$target-input$nim)/100, S=c(1,1), tail=tail, bnb_priors = c(0, 0), use_delta = NA,
-		  beta_iters = 10^4, use_ml = TRUE, binomial_priors = c(1, 1), binomial_cl_adj = 0.2)
-		
-		obsred <- round( (1 - (mean(postdata)/mean(predata))) * 100 , 1)
-		
-		if(parasitology){
-			outstring <- paste0("<strong>Summary statistics:</strong><br> &nbsp; The ", rv$prestr, " mean is ", round(premean, 1), "EPG (sample size = ", Npre, if(Rpre>1) paste0("x", Rpre), ")<br> &nbsp; The ", rv$poststr, " mean is ", round(postmean, 1), "EPG (sample size = ", Npost, if(Rpost>1) paste0("x", Rpost), ")<br>")
-		}else{
-			outstring <- paste0("<strong>Summary statistics:</strong><br> &nbsp; The ", rv$prestr, " mean is ", round(premean, 1), " (sample size = ", Npre, if(Rpre>1) paste0("x", Rpre), ")<br> &nbsp; The ", rv$poststr, " mean is ", round(postmean, 1), " (sample size = ", Npost, if(Rpost>1) paste0("x", Rpost), ")<br>")
-		}
-		outstring <- paste0(outstring, " &nbsp; The threshold for inferiority (T_I) is: &nbsp; ", input$target, "%<br> &nbsp; The threshold for non-inferiority (T_A) is: &nbsp; ", input$target-input$nim, "%<br><br>")
-		
-		colouredclass <- function(x) paste0("<span style='color:", switch(as.character(x), "Reduced"="red", "Inconclusive"="grey", "Marginal"="orange", "Adequate"="blue", "black"), ";'>", x, if(x!="Inconclusive" && !grepl("Error",x)) " Efficacy", "</span>")
-		
-		pci <- function(x, y, adj=1) paste0(100 * (1-(input$pthresh*adj*2)), "% CI: &nbsp; ", round(x*100,1), "-", round(y*100,1), "%")
-		pp <- function(x) if(x < 0.001) "<0.001" else format(c(round(x,3),0.001))[1]
-		
-		resrow <- results[results$Method=="BNB",]
-		outstring <- paste0(outstring, "<strong>BNB method:</strong> &nbsp; &nbsp; p_I: ", pp(resrow$pI), "; &nbsp; &nbsp; p_A:  ", pp(resrow$pA), "<br>&nbsp; &nbsp; ", colouredclass(resrow$Classification), "<br><br>")
+      settings$entryType <- "demo"
+      settings$design <- "paired"
+      settings$directN_paired <- 20L
+      settings$directN_txt <- input$directN_txt
+      settings$directN_ctl <- input$directN_ctl
 
-		resrow <- results[results$Method=="WAAVP",]
-		outstring <- paste0(outstring, "<strong>WAAVP method:</strong> &nbsp; &nbsp; ", pci(resrow$LCI, resrow$UCI), "<br>&nbsp; &nbsp; ", colouredclass(resrow$Classification), "<br><br>")
+      rv$data_demo <- data.frame(
+        PreTreatment = as.integer(rnbinom(20, 1, mu=20)*50),
+        PostTreatment = as.integer(rnbinom(20, 1, mu=1)*50)
+      )
 
-		resrow <- results[results$Method=="Gamma",]
-		outstring <- paste0(outstring, "<strong>Gamma method:</strong> &nbsp; &nbsp; ", pci(resrow$LCI, resrow$UCI), "<br>&nbsp; &nbsp; ", colouredclass(resrow$Classification), "<br><br>")
+      waavp_choices_demo <- waavp_choices
+      waavp_choices_demo$Swine <- NULL
+      waavp_choices_demo$Equine <- waavp_choices_demo$Equine[1:3]
 
-		resrow <- results[results$Method=="Asymptotic",]
-		outstring <- paste0(outstring, "<strong>Asymptotic method:</strong> &nbsp; &nbsp; ", pci(resrow$LCI, resrow$UCI), "<br>&nbsp; &nbsp; ", colouredclass(resrow$Classification), "<br><br>")
-		
-		if(paired){
-			resrow <- results[results$Method=="Binomial",]
-			outstring <- paste0(outstring, "<strong>Binomial method:</strong> &nbsp; &nbsp; ", pci(resrow$LCI, resrow$UCI, 0.2), "<br>&nbsp; &nbsp; ", colouredclass(resrow$Classification), "<br><br>")
-		}	
-		
-		rv$showresults <- 1
-		rv$summaries <- outstring
-	})
-	
-	fluidPage(
-		output$predata <- renderRHandsontable({
-			rhandsontable(rv$predata, rowHeaders=NULL, useTypes = FALSE, stretchH = "none")
-		}),
-		output$postdata <- renderRHandsontable({
-			rhandsontable(rv$postdata, rowHeaders=NULL, useTypes = FALSE, stretchH = "none")
-		}),
-		output$summaries <- renderText({
-			rv$summaries
-		}),
-		output$showreset <- renderText({
-			rv$showreset
-		}),
-		output$showresults <- renderText({
-			rv$showresults
-		}),
-		output$initerrors <- renderText({
-			rv$initerrors
-		}),
-		output$dataerrors <- renderText({
-			paste0("<br>", rv$dataerrors)
-		}),
-		output$prelabel <- renderText({
-			rv$prelabel
-		}),
-		output$postlabel <- renderText({
-			rv$postlabel
-		}),
-		output$scalelabel <- renderText({
-			rv$scalelabel
-		})
-	)
-	
-    output$footer <- renderText(paste0("<p align='center'>Data analysis tool for ERR / FECRT data by Matthew Denwood<br>", footeraddtext, "<a href='http://www.fecrt.com/framework/', target='_blank'>Click here for more information (opens in a new window)</a></p>"))
-	
+      updateSelectInput(session, "parameterType", selected="waavp")
+      updateSelectInput(session, "waavpSetup", selected=sample(unlist(waavp_choices_demo),1))
+      updateNumericInput(session, "mf_pre", value=50)
+      updateCheckboxInput(session, "mfp_fixed", value=TRUE)
+      updateTextInput(session, "region", value=sample(
+        c("Westeros","Narnia","Discworld","Middle-earth","Aiur","Azeroth"), 1
+      ))
+      updateTextInput(session, "identifier", value="Demonstration")
 
-	outputOptions(output, "showreset", suspendWhenHidden=FALSE)
-	outputOptions(output, "showresults", suspendWhenHidden=FALSE)
-	
-	# This breaks stuff:
-#	outputOptions(output, "predata", suspendWhenHidden=FALSE)
-#	outputOptions(output, "postdata", suspendWhenHidden=FALSE)
+      print("DEMO")
+      rv$status <- 3
+    }
+  })
+
+  data_file <- reactive({
+    req(input$dataFile)
+
+    do.call("c", nrow(input$dataFile) |>
+      lapply(function(f){
+        ext <- tools::file_ext(input$dataFile[f,"name"])
+
+        if(ext == "csv"){
+          data <- readr::read_csv(input$dataFile[f,"datapath"], show_col_types = FALSE)
+          if(ncol(data)==1L){
+            data <- readr::read_csv2(input$dataFile[f,"datapath"], show_col_types = FALSE)
+          }
+          data <- list(data)
+          names(data) <- gsub("\\.csv$","",input$dataFile[f,"name"])
+        }else if(ext %in% c("xlsx","xls")){
+          readxl::excel_sheets(input$dataFile[f,"datapath"]) |>
+            as.list() |>
+            lapply(function(x){
+              readxl::read_excel(input$dataFile[f,"datapath"], x)
+            }) ->
+            data
+        }else{
+          validate("Invalid file; please upload a .csv, .xls or .xlsx file")
+        }
+      })
+    )
+
+    ## Delegate checking of uploaded file
+    check_status <- list(OK=TRUE, Feedback="Hi", Design="paired", Paired=data.frame(), Treatment = data.frame(), Control = data.frame())
+    #bayescount:::check_fecrt_data_file(data)
+
+    if(!check_status$OK){
+      validate(check_status$Feedback)
+    }
+    updateSelectInput(session, "design", selected = check_status$Design)
+    settings$design <- check_status$Design
+
+    ## Note: this is needed as otherwise switching back to direct breaks design:
+    updateRadioButtons(session, "entryType", choices = c(`File upload` = "file"))
+
+    rv$status <- 2
+    rv$status_feedback <- status_feedback[2]
+
+    check_status$Feedback
+  })
+
+  output$upload_feedback <- renderText({
+    data_file()
+  })
+
+  observe({
+    input$design
+    rv$design <- input$design
+    settings$design <- input$design
+    rv$status <- 0L
+  })
+
+  output$status <- renderText(rv$status)
+  outputOptions(output, 'status', suspendWhenHidden=FALSE)
+
+  fluidPage({
+    output$status_feedback <- renderText(rv$status_feedback)
+    output$result_summary <- renderText(rv$result_summary)
+  })
+
+
+  ## Initialise data to go from status 0 to 1:
+  observeEvent(input$initialise_data, {
+
+    settings$design <- input$design
+    settings$directN_paired <- input$directN_paired
+    settings$directN_ctl <- input$directN_ctl
+    settings$directN_txt <- input$directN_txt
+    settings$entryType <- input$entryType
+
+    rv$data_paired <- data.frame(
+      `PreTreatment` = repnull(input$directN_paired),
+      `PostTreatment` = repnull(input$directN_paired)
+    )
+    rv$data_ctl <- data.frame(
+      `Control` = repnull(input$directN_ctl)
+    )
+    rv$data_txt <- data.frame(
+      `Treatment` = repnull(input$directN_txt)
+    )
+    rv$status <- 1L
+  })
+
+  ## Input data to go from status 1 to 2 (upload done elsewhere):
+  observe({
+    rv$status
+    input$data_paired
+    input$data_demo
+    input$data_ctl
+    input$directN_txt
+
+    if(rv$status >= 1 && settings$entryType %in% c("direct","demo")){
+      if(settings$design == "paired"){
+        if(settings$entryType=="direct"){
+          data_paired <- hot_to_r(input$data_paired)
+        }else{
+          data_paired <- hot_to_r(input$data_demo)
+        }
+        rv$status <- ifelse(
+          !is.null(data_paired) &&
+            sum(!is.na(data_paired[[1]])) > 0L &&
+            sum(!is.na(data_paired[[2]])) > 0L,
+          max(rv$status, 2), 1)
+      }else if(settings$design == "unpaired"){
+        stopifnot(settings$entryType=="direct")
+        data_ctl <- hot_to_r(input$data_ctl)
+        data_txt <- hot_to_r(input$data_txt)
+        rv$status <- ifelse(
+          !is.null(data_ctl) &&
+            !is.null(data_txt) &&
+            sum(!is.na(data_ctl)) > 0L &&
+            sum(!is.na(data_txt)) > 0L,
+          max(rv$status, 2), 1)
+      }else{
+        stop("Unrecognised settings$design")
+      }
+      if(rv$status==2){
+        rv$status_feedback <- status_feedback[2]
+      }else{
+        rv$status_feedback <- status_feedback[1]
+      }
+    }
+    ## Note: file input checking is done elsewhere!
+
+    print(rv$status)
+  })
+
+  ## Input parameters to go from status 2 to 3:
+  observe({
+    rv$status
+    input$parameterType
+    input$waavpSetup
+    input$mf_pre
+    input$mf_post
+    input$mfp_fixed
+    input$mf_txt
+    input$mf_ctl
+    input$mfu_fixed
+
+    if(rv$status >= 2){
+      if(input$design=="paired"){
+        if(is.na(input$mf_pre) || (!input$mfp_fixed && is.na(input$mf_post))){
+          rv$status <- 2
+        }else{
+          rv$status <- max(rv$status, 3)
+        }
+      }else if(input$design=="unpaired"){
+        if(is.na(input$mf_ctl) || (!input$mfu_fixed && is.na(input$mf_txt))){
+          rv$status <- 2
+        }else{
+          rv$status <- max(rv$status, 3)
+        }
+      }else{
+        stop("Unrecognised design")
+      }
+    }
+
+    print(rv$status)
+  })
+
+
+  ## Settings that reset status to 0:
+  observe({
+    if(changed(c("entryType","design","directN_paired","directN_ctl","directN_txt"),input,settings)){
+      ## If moving away from demo then reset everything:
+      if(settings$entryType=="demo"){
+        print("HARD RESET")
+        updateSelectInput(session, "design", selected="paired")
+        updateNumericInput(session, "directN_paired", value=20L)
+        updateSelectInput(session, "parameterType", selected="waavp")
+        updateSelectInput(session, "waavpSetup", selected=unlist(waavp_choices)[1])
+        updateNumericInput(session, "mf_pre", value=NULL)
+        updateCheckboxInput(session, "mfp_fixed", value=TRUE)
+        updateTextInput(session, "region", value="")
+        updateTextInput(session, "identifier", value="")
+        settings$entryType <- input$entryType
+      }
+
+      rv$status <- 0L
+    }
+  })
+
+
+  observe({
+    output$data_paired <- renderRHandsontable({
+      rhandsontable(rv$data_paired, rowHeaders=NULL, stretchH = "none")
+    })
+    output$data_demo <- renderRHandsontable({
+      rhandsontable(rv$data_demo, rowHeaders=NULL, stretchH = "none")
+    })
+    output$data_txt <- renderRHandsontable({
+      rhandsontable(rv$data_txt, rowHeaders=NULL, stretchH = "none")
+    })
+    output$data_ctl <- renderRHandsontable({
+      rhandsontable(rv$data_ctl, rowHeaders=NULL, stretchH = "none")
+    })
+  })
+
+  observe({
+
+    parasite_choices <-
+      if(input$hostSpecies == "INVALID"){
+        "*SELECT HOST FIRST*"
+      }else if(input$hostSpecies %in% c("cattle","sheep","goats")){
+        c("*SELECT*", "nematodes", "other")
+      }else if(input$hostSpecies %in% c("horse_adult","donk_adult")){
+        c("*SELECT*", "strongyles", "other")
+      }else{
+        "ERROR - MISSING HOST"
+      }
+
+    anthelmintic_choices <-
+      if(input$hostSpecies == "INVALID"){
+        "*SELECT HOST FIRST*"
+      }else if(input$hostSpecies %in% c("cattle","sheep","goats")){
+        c("*SELECT*", "Benzimidazoles", "Other")
+      }else if(input$hostSpecies %in% c("horse_adult","donk_adult")){
+        c("*SELECT*", "Pyrantel", "Other")
+      }else{
+        "ERROR - MISSING HOST"
+      }
+
+    updateSelectInput(session,
+      "parasiteSpecies",
+      choices = parasite_choices,
+      selected = ifelse(is.null(input$parasiteSpecies) || !input$parasiteSpecies %in% parasite_choices, parasite_choices[1], input$parasiteSpecies)
+    )
+
+    updateSelectInput(session,
+      "anthelmintic",
+      choices = anthelmintic_choices,
+      selected = ifelse(is.null(input$anthelmintic) || !input$anthelmintic %in% anthelmintic_choices, anthelmintic_choices[1], input$anthelmintic)
+    )
+
+  })
+
+  #output$host <- "other"
+  output$footer <- renderText("<h4>Hello</h4>")
+  #print(input$hostSpecies)
+  #print(input)
+
+  output$downloadReport <- downloadHandler(
+    filename = function() {
+      ext <- if(input$downloadType=="pdf"){
+        "pdf"
+      }else if(input$downloadType=="word"){
+        "docx"
+      }else{
+        stop("Unrecognised download type")
+      }
+      paste(ifelse(identical(input$identifier,""), "report", input$identifier), ".", ext, sep = "")
+    },
+    content = function(file) {
+      ext <- if(input$downloadType=="pdf"){
+        "pdf"
+      }else if(input$downloadType=="word"){
+        "docx"
+      }else{
+        stop("Unrecognised download type")
+      }
+      success <- file.copy(file.path(tempdir, paste("report.",ext,sep="")),file)
+      if(!success) stop("Error copying report")
+    }
+  )
+
+  observeEvent(input$calculate, {
+    withProgress(message = "Calculating...", value= 0, {
+
+      ## Create R6 class object to check/store everything:
+
+      for(i in 1:10){
+        setProgress(i/10)
+        Sys.sleep(0.1)
+      }
+    })
+
+    rv$result_summary <- "Results..."
+    rv$status <- 4
+  })
+
 
 }

@@ -21,5 +21,35 @@ testing <- FALSE
 
 parasitology <- FALSE
 
-headscript <- ""
-footeraddtext <- ""
+headscript <- "Hello"
+footeraddtext <- "Footer"
+
+library("markdown")
+colwidth <- 4L
+
+waavp_choices <- list(
+	`*SELECT*` = "INVALID",
+	Ruminants = list(`Cattle - Nematodes - All` = "cattle", `Sheep - Nematodes - All` = "sheep", `Goats - Nematodes - All` = "goats"),
+	Equine = list(`Cyathostomins - Macroclyclic Lactones` = "cyath_ml", `Cyathostomins - Benzimidazoles` = "cyath_bz", `Cyathostomins - Pyrantel` = "cyath_pyr", `Foals - Parascaris - All` = "donk_foal"),
+	`Swine` = list(`Oesophagostomum - Benzimidazoles` = "pig_bz", `Oesophagostomum - Ivermectin` = "pig_ivm")
+)
+
+host_choices <- list(
+	`*SELECT*` = "INVALID",
+	Ruminants = list(`Cattle` = "cattle", `Sheep` = "sheep", `Goats` = "goats"),
+	Equine = list(`Horses (adults)` = "horse_adult", `Horses (foals)` = "Horses (foals)", `Donkeys (adults)` = "donk_adult", `Donkeys (foals)` = "donk_foal"),
+	`Swine` = "pigs",
+	`Other` = "other"
+)
+
+repnull <- function(x) rep(NA_integer_, if(is.null(x)) 0L else x)
+changed <- function(x,input,settings) any(sapply(x, function(y) !is.null(input[[y]]) && !identical(input[[y]],settings[[y]])))
+
+status_feedback <- c(
+  "Please enter data (second tab)",
+  "Please enter valid parameters (third tab)"
+  )
+tempdir <- tempfile(pattern = "fecrt_analysis", tmpdir = tempdir(check=TRUE))
+dir.create(tempdir)
+on.exit(unlink(tempdir, recursive=TRUE))
+
