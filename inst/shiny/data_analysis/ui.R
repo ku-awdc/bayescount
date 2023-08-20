@@ -153,7 +153,7 @@ fluidPage(
 
 
 		## PARAMETERS
-		tabPanel("Select Parameters",
+		tabPanel("Parameters",
 
 			## Row for pre-selection and host:
 			fluidRow(
