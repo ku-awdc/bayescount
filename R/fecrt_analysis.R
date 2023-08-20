@@ -244,6 +244,147 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 
 		get_data = function(){
 			private$data
+		},
+
+		set_parameters_guidelines = function(guideline, version, mf_1, mf_2=mf_1, region=NA_character_, identifier=NA_character_){
+			private$parameters <- list(guideline=guideline, version=version, mf_1=mf_1, mf_2=mf_2, region=region, identifier=identifier)
+		},
+
+		set_parameters = function(){
+			## TODO: custom target efficacies etc
+		},
+
+		run_analysis = function(){
+			stopifnot(!identical(private$data, list()), !identical(private$parameters, list()))
+
+			stopifnot(private$current_type%in%c("paired","unpaired"))
+			paired <- private$current_type=="paired"
+
+			stopifnot(private$parmeters$version%in%c("clinical","research"))
+			version <- private$parameters$version
+
+			TE <- switch(private$parameters$guideline,
+				"cattle" = 0.99,
+				"sheep" = 0.99,
+				"goats" = 0.99,
+				"cyath_ml" = 0.999,
+				"cyath_bz" = 0.99,
+				"cyath_pyr" = 0.98,
+				"foals" = 0.999,
+				"pig_bz" = 0.99,
+				"pig_ivm" = 0.95,
+				NA_real_
+			)
+
+			if(version=="research"){
+				TL <- switch(private$parameters$guideline,
+					"cattle" = 0.95,
+					"sheep" = 0.95,
+					"goats" = 0.95,
+					"cyath_ml" = 0.96,
+					"cyath_bz" = 0.95,
+					"cyath_pyr" = 0.88,
+					"foals" = 0.95,
+					"pig_bz" = 0.93,
+					"pig_ivm" = 0.85,
+					NA_real_
+				)
+			}else{
+				TL <- switch(private$parameters$guideline,
+					"cattle" = 0.90,
+					"sheep" = 0.90,
+					"goats" = 0.90,
+					"cyath_ml" = 0.92,
+					"cyath_bz" = 0.90,
+					"cyath_pyr" = 0.80,
+					"foals" = 0.90,
+					"pig_bz" = 0.88,
+					"pig_ivm" = 0.80,
+					NA_real_
+				)
+			}
+			stopifnot(!is.na(TE), !is.na(TL))
+
+			k1 <- switch(private$parameters$guideline,
+				"cattle" = 1.1,
+				"sheep" = 1.4,
+				"goats" = 3.8,
+				"cyath_ml" = 1.3,
+				"cyath_bz" = 1.3,
+				"cyath_pyr" = 1.3,
+				"foals" = 1.1,
+				"pig_bz" = 0.8,
+				"pig_ivm" = 0.8,
+				NA_real_
+			)
+			k2 <- switch(private$parameters$guideline,
+				"cattle" = 0.4,
+				"sheep" = 0.8,
+				"goats" = 2.4,
+				"cyath_ml" = 0.5,
+				"cyath_bz" = 0.5,
+				"cyath_pyr" = 0.5,
+				"foals" = 1.0,
+				"pig_bz" = 1.2,
+				"pig_ivm" = 1.2,
+				NA_real_
+			)
+			kc <- switch(private$parameters$guideline,
+				"cattle" = 0.1,
+				"sheep" = 0.5,
+				"goats" = 0.5,
+				"cyath_ml" = 0.5,
+				"cyath_bz" = 0.5,
+				"cyath_pyr" = 0.5,
+				"foals" = 0.2,
+				"pig_bz" = 0.4,
+				"pig_ivm" = 0.4,
+				NA_real_
+			)
+			stopifnot(!is.na(k1), !is.na(k2), !is.na(kc))
+			if(paired){
+				k1 <- k1 / (1-kc)
+				k2 <- k2 / (1-kc)
+			}
+
+			## Scale by mf for BNB and BNB_KnownKs:
+			mf_1 <- private$parameters$mf_1
+			mf_2 <- private$parameters$mf_2
+			mf_r <- mf_1/mf_2
+			TE_r <- 1- ((1-TE)*mf_r)
+			TL_r <- 1- ((1-TL)*mf_r)
+
+			for(i in self$n_data){
+				if(paired){
+					d1 <- private$data[[i]]$PreTreatment
+					d2 <- private$data[[i]]$PostTreatment
+				}else{
+					d1 <- private$data[[i]]$PreTreatment
+					d2 <- private$data[[i]]$PostTreatment
+				}
+
+				## Results for Gamma and WAAVP ignoring mf:
+				d2 <- rnbinom(20,1,mu=1)*50
+				results_nonpar <- efficacy_analysis(d1, d2, paired=paired, T_I=TE, T_A=TL, alpha=0.05)
+
+				## Results for BNB and BNB_KnownKs:
+				results_bnbs <- efficacy_analysis(d1/mf_1, d2/mf_2, paired=paired, T_I=TE_r, T_A=TL_r, alpha=0.05, known_ks = c(k1,k2))
+
+				results <- bind_rows(
+					results_nonpar |> filter(Method %in% c("Gamma","WAAVP")),
+					results_bnbs |> filter(Method %in% c("BNB","BNB_KnownKs"))
+				)
+				results
+
+				## If N<5 then prefer BNB_Knownks
+				## If N>=5 and 3 or more non-zero counts (pre- and post-) then prefer Gamma
+				## If N>=5 and <3 non-zero counts then prefer BNB
+				## If any count %% 1 != 0 then don't show BNB or BNBKnownKs
+				## Show WAABP as well
+
+
+			}
+
 		}
 
 	),
@@ -256,7 +397,8 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 	private = list(
 		shiny = FALSE,
 		current_type = "",
-		data = list()
+		data = list(),
+		parameters = list()
 	)
 
 )

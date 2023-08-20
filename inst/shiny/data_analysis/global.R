@@ -31,7 +31,7 @@ colwidth <- 4L
 waavp_choices <- list(
 	`*SELECT*` = "INVALID",
 	Ruminants = list(`Cattle - Nematodes - All` = "cattle", `Sheep - Nematodes - All` = "sheep", `Goats - Nematodes - All` = "goats"),
-	Equine = list(`Cyathostomins - Macroclyclic Lactones` = "cyath_ml", `Cyathostomins - Benzimidazoles` = "cyath_bz", `Cyathostomins - Pyrantel` = "cyath_pyr", `Foals - Parascaris - All` = "donk_foal"),
+	Equine = list(`Cyathostomins - Macroclyclic Lactones` = "cyath_ml", `Cyathostomins - Benzimidazoles` = "cyath_bz", `Cyathostomins - Pyrantel` = "cyath_pyr", `Foals - Parascaris - All` = "foals"),
 	`Swine` = list(`Oesophagostomum - Benzimidazoles` = "pig_bz", `Oesophagostomum - Ivermectin` = "pig_ivm")
 )
 

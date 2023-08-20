@@ -236,11 +236,11 @@ Rcpp::String get_type_pv(const double eff, const double p1, const double p2, con
 }
 
 
-Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, bool useml, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors)
+Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, bool useml, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors, Rcpp::NumericVector known_ks)
 {
 	using namespace Rcpp;
 
-	const int nrows = paired ? 5L : 4L;
+	const int nrows = paired ? 6L : 5L;
 	Rcpp::DoubleVector td( nrows, NA_REAL );
 	Rcpp::StringVector ts( nrows );
 	Rcpp::StringVector output_Method = clone(ts);
@@ -311,6 +311,12 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 
 	output_Method[row] = "BNB";
 	bnb_pval(sum_1, N_1, ks[0L], mean_1, var_1, sum_2, N_2, ks[1L], mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
+	output_Classification[row] = get_type_pv(1.0-obsred, output_pA[row], output_pI[row], tail, H0_A, H0_I);
+	row++;
+
+	output_Method[row] = "BNB_KnownKs";
+	// TODO: known_ks will be ignored when using approximation - refactor code!
+	bnb_pval(sum_1, N_1, known_ks[0L], mean_1, var_1, sum_2, N_2, known_ks[1L], mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
 	output_Classification[row] = get_type_pv(1.0-obsred, output_pA[row], output_pI[row], tail, H0_A, H0_I);
 	row++;
 

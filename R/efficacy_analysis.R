@@ -6,6 +6,7 @@
 #' @param data_1 either the pre-treatment or control data - should either be an integer vector, or an integer matrix with replicates from the same individual in columns
 #' @param data_2 either the post-treatment or control data - should either be an integer vector, or an integer matrix with replicates from the same individual in columns
 #' @param paired logical flag for a paired or unpaired study design - if paired then length or nrow of data_1 must equal that of data_2
+#' @param mf_r the ratio of multiplication factors post- compared to pre-treatment
 #' @param T_I the threshold for inferioirty (target efficacy of the intervention)
 #' @param T_A the threshold for non-inferioirty (target efficacy of the intervention minus a non-inferioirty margin delta)
 #' @param alpha the significance level to use for the classification, where 0.025 corresponds to 95\% CI and 0.05 corresponds to 90\% CI
@@ -25,9 +26,11 @@
 #' (data1 <- rnbinom(10, mu=20, size=1))
 #' (data2 <- rnbinom(10, mu=2, size=0.75))
 #' efficacy_analysis(data1, data2, paired=FALSE, T_I=0.95, T_A=0.9)
-efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,1), alpha=0.025, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, use_ml=TRUE, binomial_priors=c(1,1), binomial_cl_adj=0.2) {
+efficacy_analysis <- function(data_1, data_2, paired, mf_r=1, T_I=0.99, T_A=0.95, S=c(1,1), alpha=0.05, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, use_ml=TRUE, binomial_priors=c(1,1), binomial_cl_adj=0.2, known_ks=c(1.0, 1.0)) {
 
 	# TODO: input checks
+
+	if(mf_r!=1) warning("mf_r is currently ignored")
 
 	if(is.matrix(data_1)){
 		if(!is.matrix(data_2)){
@@ -58,12 +61,14 @@ efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,
 	binomial_cl <- c(alpha*binomial_cl_adj, 1-(alpha*binomial_cl_adj))
 	stopifnot(length(binomial_cl)==2 && all(!is.na(binomial_cl)) && all(binomial_cl > 0) && all(binomial_cl < 1) && binomial_cl[1] < binomial_cl[2])
 
-	results <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors))
+	stopifnot(length(known_ks)==2, all(!is.na(known_ks)), all(known_ks>0.0))
+
+	results <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors), as.double(known_ks))
 
 	typgrp <- gsub("[[:alpha:]]","",results$Typology)
 	results$Classification <- sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Method_Failure")
-	
-	results$Method <- factor(results$Method, levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB'))
+
+	results$Method <- factor(results$Method, levels=c('WAAVP','Gamma','Binomial','Asymptotic','BNB_KnownKs','BNB'))
 	results$Typology <- factor(results$Typology, levels=c("1ab", "1c", "2a", "2b","2c", "3", "4a","4bc","100%red", "<0%red", "error"))
 	results$Classification <- factor(results$Classification, levels=c("Reduced", "Inconclusive", "Borderline", "Adequate","Method_Failure"))
 

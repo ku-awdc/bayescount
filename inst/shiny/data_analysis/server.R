@@ -104,15 +104,6 @@ function(input, output, session) {
     rv$status <- 0L
   })
 
-  output$status <- renderText(rv$status)
-  outputOptions(output, 'status', suspendWhenHidden=FALSE)
-
-  fluidPage({
-    output$status_feedback <- renderText(rv$status_feedback)
-    output$result_summary <- renderText(rv$result_summary)
-  })
-
-
   ## Initialise data to go from status 0 to 1:
   observeEvent(input$initialise_data, {
 
@@ -193,13 +184,13 @@ function(input, output, session) {
 
     if(rv$status >= 2){
       if(input$design=="paired"){
-        if(is.na(input$mf_pre) || (!input$mfp_fixed && is.na(input$mf_post))){
+        if(is.na(input$mf_pre) || (!input$mfp_fixed && is.na(input$mf_post)) || input$waavpSetup=="INVALID"){
           rv$status <- 2
         }else{
           rv$status <- max(rv$status, 3)
         }
       }else if(input$design=="unpaired"){
-        if(is.na(input$mf_ctl) || (!input$mfu_fixed && is.na(input$mf_txt))){
+        if(is.na(input$mf_ctl) || (!input$mfu_fixed && is.na(input$mf_txt)) || input$waavpSetup=="INVALID"){
           rv$status <- 2
         }else{
           rv$status <- max(rv$status, 3)
@@ -210,6 +201,7 @@ function(input, output, session) {
     }
 
     print(rv$status)
+    print(input$parameterType)
   })
 
 
@@ -332,5 +324,12 @@ function(input, output, session) {
     rv$status <- 4
   })
 
+  output$status <- renderText(rv$status)
+  outputOptions(output, 'status', suspendWhenHidden=FALSE)
+
+  fluidPage({
+    output$status_feedback <- renderText(rv$status_feedback)
+    output$result_summary <- renderText(rv$result_summary)
+  })
 
 }

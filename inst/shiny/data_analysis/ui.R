@@ -2,7 +2,7 @@ fluidPage(
 	theme = shinytheme("readable"),
 
 	tags$head(includeHTML("head.html")),
-#	tags$header(hr()),
+	#	tags$header(hr()),
 
 	navbarPage("fecrt.com",
 
@@ -160,13 +160,14 @@ fluidPage(
 				column(colwidth,
 					radioButtons("parameterType",
 						"Select scenario:",
-						#choices = c(`WAAVP guidelines` = "waavp", `Custom` = "custom"),
-						choices = c(`WAAVP guidelines` = "waavp"),
+						#choices = c(`Guidelines: clinical` = "clinical", `Guidelines: research` = "research", `Custom` = "custom"),
+						choices = c(`Guidelines: clinical` = "clinical", `Guidelines: research` = "research"),
 						selected = "waavp", #character(0),
 						inline = FALSE
 					)
 				),
-				conditionalPanel("input.parameterType == 'waavp'",
+
+				conditionalPanel("input.parameterType == 'clinical' || input.parameterType == 'research'",
 					column(colwidth,
 						selectInput("waavpSetup", "Species and anthelmintic:",
 							choices = waavp_choices,
@@ -267,70 +268,72 @@ fluidPage(
 			),
 
 			## Common rows for multiplication factor:
-			conditionalPanel("input.design == 'paired'",
-				fluidRow(
-					column(colwidth,
-						div(strong("Multiplication factor (pre-treatment):")),
-						numericInput("mf_pre",
-							"",
-							NULL,
-							min=0, max=100, step=1
-						)
-					),
-					column(colwidth,
-						checkboxInput("mfp_fixed",
-							"Post- same as pre-treatment",
-							value=TRUE
-						),
-						conditionalPanel("input.mfp_fixed == false",
-							numericInput("mf_post",
+			conditionalPanel("input.parameterType == 'clinical' || input.parameterType == 'research' || input.parameterType == 'custom'",
+				conditionalPanel("input.design == 'paired'",
+					fluidRow(
+						column(colwidth,
+							div(strong("Multiplication factor (pre-treatment):")),
+							numericInput("mf_pre",
 								"",
 								NULL,
 								min=0, max=100, step=1
 							)
-						)
-					)
-				)
-			),
-
-			conditionalPanel("input.design == 'unpaired'",
-				fluidRow(
-					column(colwidth,
-						div(strong("Multiplication factor (controls):")),
-						numericInput("mf_ctl",
-							"",
-							NULL,
-							min=0, max=100, step=1
-						)
-					),
-					column(colwidth,
-						checkboxInput("mfu_fixed",
-							"Treatment same as control",
-							value=TRUE
 						),
-						conditionalPanel("input.mfu_fixed == false",
-							numericInput("mf_txt",
-								"",
-								NULL,
-								min=0, max=100, step=1
+						column(colwidth,
+							checkboxInput("mfp_fixed",
+								"Post- same as pre-treatment",
+								value=TRUE
+							),
+							conditionalPanel("input.mfp_fixed == false",
+								numericInput("mf_post",
+									"",
+									NULL,
+									min=0, max=100, step=1
+								)
 							)
 						)
 					)
-				)
-			),
-
-			## Row for optional info:
-			fluidRow(
-				column(colwidth,
-					textInput("region",
-						"Country/region (optional):",
-						value = ""
-					),
 				),
-				column(colwidth,
-					textInput("identifier",
-						"Study identifier (optional):",
-						value = ""
+
+				conditionalPanel("input.design == 'unpaired'",
+					fluidRow(
+						column(colwidth,
+							div(strong("Multiplication factor (controls):")),
+							numericInput("mf_ctl",
+								"",
+								NULL,
+								min=0, max=100, step=1
+							)
+						),
+						column(colwidth,
+							checkboxInput("mfu_fixed",
+								"Treatment same as control",
+								value=TRUE
+							),
+							conditionalPanel("input.mfu_fixed == false",
+								numericInput("mf_txt",
+									"",
+									NULL,
+									min=0, max=100, step=1
+								)
+							)
+						)
+					)
+				),
+
+				## Row for optional info:
+				fluidRow(
+					column(colwidth,
+						textInput("region",
+							"Country/region (optional):",
+							value = ""
+						),
+					),
+					column(colwidth,
+						textInput("identifier",
+							"Study identifier (optional):",
+							value = ""
+						)
 					)
 				)
 			)
