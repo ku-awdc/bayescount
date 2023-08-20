@@ -367,6 +367,7 @@ fluidPage(
 				fluidRow(
 					column(colwidth*2,
 						htmlOutput("result_summary", width="100%"),
+						hr(),
 						selectInput("downloadType",
 							"Report download format:",
 							choices = c(`PDF` = "pdf", `Microsoft Word` = "word"),

@@ -1,3 +1,9 @@
+tempdir <- tempfile(pattern = "fecrt_analysis", tmpdir = tempdir(check=TRUE))
+dir.create(tempdir)
+on.exit(unlink(tempdir, recursive=TRUE))
+
+fecrt_analysis <- FecrtAnalysis$new(shiny = TRUE)
+
 function(input, output, session) {
 
   rv <- reactiveValues(
@@ -64,39 +70,19 @@ function(input, output, session) {
   data_file <- reactive({
     req(input$dataFile)
 
-    do.call("c", nrow(input$dataFile) |>
-      lapply(function(f){
-        ext <- tools::file_ext(input$dataFile[f,"name"])
+    fecrt_analysis$reset()
+    msg <- fecrt_analysis$add_data_files(input$dataFile[,"datapath"], names=input$dataFile[,"name"])
 
-        if(ext == "csv"){
-          data <- readr::read_csv(input$dataFile[f,"datapath"], show_col_types = FALSE)
-          if(ncol(data)==1L){
-            data <- readr::read_csv2(input$dataFile[f,"datapath"], show_col_types = FALSE)
-          }
-          data <- list(data)
-          names(data) <- gsub("\\.csv$","",input$dataFile[f,"name"])
-        }else if(ext %in% c("xlsx","xls")){
-          readxl::excel_sheets(input$dataFile[f,"datapath"]) |>
-            as.list() |>
-            lapply(function(x){
-              readxl::read_excel(input$dataFile[f,"datapath"], x)
-            }) ->
-            data
-        }else{
-          validate("Invalid file; please upload a .csv, .xls or .xlsx file")
-        }
-      })
-    )
-
-    ## Delegate checking of uploaded file
-    check_status <- list(OK=TRUE, Feedback="Hi", Design="paired", Paired=data.frame(), Treatment = data.frame(), Control = data.frame())
-    #bayescount:::check_fecrt_data_file(data)
-
-    if(!check_status$OK){
-      validate(check_status$Feedback)
+    if(fecrt_analysis$n_data==0L){
+      rv$status <- 0
+      rv$status_feedback <- status_feedback[1]
+      validate(str_c(c("No valid datasets found - please correct the following errors and try again:", str_c("\t", msg)), collapse="\n"))
     }
-    updateSelectInput(session, "design", selected = check_status$Design)
-    settings$design <- check_status$Design
+
+    msg <- str_c(c(str_c("A total of ", fecrt_analysis$n_data, " datasets were uploaded successfully with the following notes:"), str_c("\t", msg)), collapse="<br>")
+
+    updateSelectInput(session, "design", selected = fecrt_analysis$design)
+    settings$design <- fecrt_analysis$design
 
     ## Note: this is needed as otherwise switching back to direct breaks design:
     updateRadioButtons(session, "entryType", choices = c(`File upload` = "file"))
@@ -104,7 +90,7 @@ function(input, output, session) {
     rv$status <- 2
     rv$status_feedback <- status_feedback[2]
 
-    check_status$Feedback
+    msg
   })
 
   output$upload_feedback <- renderText({
@@ -342,7 +328,7 @@ function(input, output, session) {
       }
     })
 
-    rv$result_summary <- "Results..."
+    rv$result_summary <- "Results will be displayed here...<br>Note: the report download links currently do not do anything!"
     rv$status <- 4
   })
 

@@ -27,24 +27,29 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Depends:
-    R (>= 3.3.0)
+    R (>= 4.1.0)
 Imports:
+	tools,
 	parallel,
 	dplyr,
 	rlang,
 	tidyr,
-	Rcpp (>= 1.0.0)
-Suggests:
+	readr,
+	stringr,
+	readxl,
+	R6,
+	Rcpp (>= 1.0.0),
 	shiny,
 	shinythemes,
 	rhandsontable,
 	ggplot2,
-    testthat (>= 2.1.0),
-    knitr,
-    rmarkdown,
-    spelling
+	rmarkdown
+Suggests:
+  testthat (>= 2.1.0),
+  knitr,
+  spelling
 LinkingTo: 
 	Rcpp,
 	RcppDist,

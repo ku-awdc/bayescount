@@ -6,6 +6,7 @@ library("bayescount")
 library("shiny")
 library("shinythemes")
 library("rhandsontable")
+library("stringr")
 # TODO: handle this more nicely
 
 # Load the packages:
@@ -46,10 +47,6 @@ repnull <- function(x) rep(NA_integer_, if(is.null(x)) 0L else x)
 changed <- function(x,input,settings) any(sapply(x, function(y) !is.null(input[[y]]) && !identical(input[[y]],settings[[y]])))
 
 status_feedback <- c(
-  "Please enter data (second tab)",
-  "Please enter valid parameters (third tab)"
+  'Please enter data via the "Data" tab.<br>For help, see the "Instructions" tab.',
+	'Please enter valid parameters via the "Parameters" tab.<br>For help, see the "Instructions" tab.'
   )
-tempdir <- tempfile(pattern = "fecrt_analysis", tmpdir = tempdir(check=TRUE))
-dir.create(tempdir)
-on.exit(unlink(tempdir, recursive=TRUE))
-
