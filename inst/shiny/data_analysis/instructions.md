@@ -47,7 +47,7 @@ If you wish, you may go back and change parameters and then re-run the analysis.
 
 ### About
 
-This online tool was developed by Matt Denwood at the University of Copenhagen, with input from Ray Kaplan, Martin K. Nielsen, Bruno Levecke, Stig Milan Thamsborg, and Iain McKendrick.  We acknowledge funding from NordForsk (the DigiVet project on digitalisation of livestock data:  https://www.dcs.gla.ac.uk/~jenright/digivet_website/) and the Scottish Government Rural and Environment Science and Analytical Services Division (RESAS) Strategic Research Programme for support of this work.  If you have comments/questions/suggestions, then please feel free to get in touch [by emailing Matt Denwood](md@sund.ku.dk).
+This online tool was developed by Matt Denwood at the University of Copenhagen, with input from Ray Kaplan, Martin K. Nielsen, Bruno Levecke, Stig Milan Thamsborg, and Iain McKendrick.  We acknowledge funding from NordForsk (the DigiVet project on digitalisation of livestock data:  https://www.dcs.gla.ac.uk/~jenright/digivet_website/) and the Scottish Government Rural and Environment Science and Analytical Services Division (RESAS) Strategic Research Programme, for support of this work.  If you have comments/questions/suggestions, then please feel free to get in touch [by emailing Matt Denwood](md@sund.ku.dk).
 
 For more information on the WAAVP guidelines see [Kaplan et al. (2023)](https://pubmed.ncbi.nlm.nih.gov/37121092/).  To cite this tool in peer-reviewed publications (and for more details on the underlying statistical principles) see [Denwood et al. (2023)](https://pubmed.ncbi.nlm.nih.gov/36621042/).  A version of this tool is hosted at [the fecrt.com website](https://www.fecrt.com).
 
