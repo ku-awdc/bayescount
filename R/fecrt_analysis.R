@@ -376,12 +376,23 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 				)
 				results
 
+				## NB: elements 4 and 5 are the real ks, 1 and 2 are adjusted!
+				estks <- estimate_k(d1/mf_1, d2/mf_2, paired=paired)
+
 				## If N<5 then prefer BNB_Knownks
 				## If N>=5 and 3 or more non-zero counts (pre- and post-) then prefer Gamma
 				## If N>=5 and <3 non-zero counts then prefer BNB
 				## If any count %% 1 != 0 then don't show BNB or BNBKnownKs
 				## Show WAABP as well
 
+
+				## Code for other one:
+				res <- fecrt_sample_size(EPGrange=50*20, EDT=50, mulength=1, margin=0.04, iters=10000L)
+				# EPGrange=epgrange, mulength=length(epgrange), EDT=1, target=using$Target[1]/100, margin=unique(using$Delta/100), k1=using$k1[1], k2=using$k2[1], cor=using$cor[1], iters=iters
+				ggplot(res$smat, aes(x=N, y=power, col=Hypothesis)) +
+					geom_line() +
+					geom_point() +
+					scale_x_continuous(trans="log10")
 
 			}
 
