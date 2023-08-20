@@ -1,12 +1,12 @@
 ## The required packages must be supplied like this on the second line of the file as it is used to check the packages are installed before launching:
-packages <- c("bayescount","shiny","shinythemes","dplyr","ggplot2")
+packages <- c("bayescount","shiny","shinythemes","rhandsontable")
 
 # Needs to be explicitly in here as library etc calls for deployment to shinyapps.io:
 library("bayescount")
 library("shiny")
 library("shinythemes")
-library("dplyr")
-library("ggplot2")
+library("rhandsontable")
+library("stringr")
 # TODO: handle this more nicely
 
 # Load the packages:
@@ -15,46 +15,33 @@ if(!all(sapply(packages, require, character.only=TRUE))) stop("One or more requi
 # Other global settings and options:
 options(stringsAsFactors=FALSE)
 
-# Permanent settings:
-citers <- 10^4
+### For testing:
+testing <- FALSE
+# testing <- TRUE
+###
 
+parasitology <- FALSE
 
+headscript <- "Hello"
+footeraddtext <- "Footer"
 
-# Default min, max and step for log sliders:
-logslidvals <- c(-2,2,0.025)
+library("markdown")
+colwidth <- 4L
 
-# logifySlider javascript function
-JS.logify <-
-"
-// function to logify a sliderInput
-function logifySlider (sliderId, sci = false) {
-  if (sci) {
-    // scientific style
-    $('#'+sliderId).data('ionRangeSlider').update({
-      'prettify': function (num) { return ('10<sup>'+num+'</sup>'); }
-    })
-  } else {
-    // regular number style
-    $('#'+sliderId).data('ionRangeSlider').update({
-      'prettify': function (num) { return (Math.round(Math.pow(10, num)*100)/100); }
-    })
-  }
-}"
+waavp_choices <- list(
+	`*SELECT*` = "INVALID",
+	Ruminants = list(`Cattle - Nematodes - All` = "cattle", `Sheep - Nematodes - All` = "sheep", `Goats - Nematodes - All` = "goats"),
+	Equine = list(`Cyathostomins - Macroclyclic Lactones` = "cyath_ml", `Cyathostomins - Benzimidazoles` = "cyath_bz", `Cyathostomins - Pyrantel` = "cyath_pyr", `Foals - Parascaris - All` = "donk_foal"),
+	`Swine` = list(`Oesophagostomum - Benzimidazoles` = "pig_bz", `Oesophagostomum - Ivermectin` = "pig_ivm")
+)
 
-# call logifySlider for each relevant sliderInput
-JS.onload <-
-"
-// execute upon document loading
-$(document).ready(function() {
-  // wait a few ms to allow other scripts to execute
-  setTimeout(function() {
-    // include call for each slider
-    logifySlider('k1', sci = false)
-    logifySlider('k2', sci = false)
-  }, 5)})
-"
+host_choices <- list(
+	`*SELECT*` = "INVALID",
+	Ruminants = list(`Cattle` = "cattle", `Sheep` = "sheep", `Goats` = "goats"),
+	Equine = list(`Horses (adults)` = "horse_adult", `Horses (foals)` = "Horses (foals)", `Donkeys (adults)` = "donk_adult", `Donkeys (foals)` = "donk_foal"),
+	`Swine` = "pigs",
+	`Other` = "other"
+)
 
-
-
-headscript <- ""
-footeraddtext <- ""
+repnull <- function(x) rep(NA_integer_, if(is.null(x)) 0L else x)
+changed <- function(x,input,settings) any(sapply(x, function(y) !is.null(input[[y]]) && !identical(input[[y]],settings[[y]])))
