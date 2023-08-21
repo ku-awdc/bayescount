@@ -43,9 +43,7 @@ function(input, output, session) {
       settings$design <- "paired"
       settings$directN_paired <- 20L
       settings$directN_ctl <- input$directN_ctl
-      settings$directN_txt <- input$directN_ctl
-      # Non-equal N currently disabled as broken for BNB:
-      # settings$directN_txt <- input$directN_txt
+      settings$directN_txt <- input$directN_txt
 
       rv$data_demo <- data.frame(
         PreTreatment = as.integer(rnbinom(20, 1, mu=20)*50),
@@ -66,7 +64,6 @@ function(input, output, session) {
       ))
       updateTextInput(session, "identifier", value="Demonstration")
 
-      print("DEMO")
       rv$status <- 3
     }
   })
@@ -114,9 +111,7 @@ function(input, output, session) {
     settings$design <- input$design
     settings$directN_paired <- input$directN_paired
     settings$directN_ctl <- input$directN_ctl
-    settings$directN_txt <- input$directN_ctl
-    # Non-equal N currently disabled as broken for BNB:
-    #settings$directN_txt <- input$directN_txt
+    settings$directN_txt <- input$directN_txt
     settings$entryType <- input$entryType
 
     rv$data_paired <- data.frame(
@@ -127,9 +122,7 @@ function(input, output, session) {
       `Control` = repnull(input$directN_ctl)
     )
     rv$data_txt <- data.frame(
-      # Non-equal N currently disabled as broken for BNB:
-      #`Treatment` = repnull(input$directN_txt)
-      `Treatment` = repnull(input$directN_ctl)
+      `Treatment` = repnull(input$directN_txt)
     )
     rv$status <- 1L
   })
@@ -140,8 +133,7 @@ function(input, output, session) {
     input$data_paired
     input$data_demo
     input$data_ctl
-    # Non-equal N currently disabled as broken for BNB:
-    # input$directN_txt
+    input$data_txt
 
     if(rv$status >= 1 && settings$entryType %in% c("direct","demo")){
       if(settings$design == "paired"){
@@ -210,18 +202,14 @@ function(input, output, session) {
     }
 
     print(rv$status)
-    print(input$parameterType)
   })
 
 
   ## Settings that reset status to 0:
   observe({
-    # Non-equal N currently disabled as broken for BNB:
-    #if(changed(c("entryType","design","directN_paired","directN_ctl","directN_txt"),input,settings)){
-    if(changed(c("entryType","design","directN_paired","directN_ctl"),input,settings)){
+    if(changed(c("entryType","design","directN_paired","directN_ctl","directN_txt"),input,settings)){
       ## If moving away from demo then reset everything:
       if(settings$entryType=="demo"){
-        print("HARD RESET")
         updateSelectInput(session, "design", selected="paired")
         updateNumericInput(session, "directN_paired", value=20L)
         updateSelectInput(session, "parameterType", selected="waavp")
@@ -330,8 +318,13 @@ function(input, output, session) {
         if(settings$design=="paired"){
           fecrt_analysis$import_data(hot_to_r(input$data_paired),"direct entry")
         }else{
+          ctls <- hot_to_r(input$data_ctl)[[1]]
+          txts <- hot_to_r(input$data_txt)[[1]]
+          gps <- c(rep("Control",times=length(ctls)), rep("Treatment",times=length(txts)))
+          epgs <- c(ctls,txts)
+          stopifnot(length(gps)==length(epgs))
           fecrt_analysis$import_data(
-            data.frame(Control=hot_to_r(input$data_ctl), Treatment=hot_to_r(input$data_txt)),
+            data.frame(Group=gps, EPG=epgs),
             "direct entry"
           )
         }
