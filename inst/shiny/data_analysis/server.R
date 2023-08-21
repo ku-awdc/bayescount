@@ -64,7 +64,6 @@ function(input, output, session) {
       ))
       updateTextInput(session, "identifier", value="Demonstration")
 
-      print("DEMO")
       rv$status <- 3
     }
   })
@@ -203,7 +202,6 @@ function(input, output, session) {
     }
 
     print(rv$status)
-    print(input$parameterType)
   })
 
 
@@ -212,7 +210,6 @@ function(input, output, session) {
     if(changed(c("entryType","design","directN_paired","directN_ctl","directN_txt"),input,settings)){
       ## If moving away from demo then reset everything:
       if(settings$entryType=="demo"){
-        print("HARD RESET")
         updateSelectInput(session, "design", selected="paired")
         updateNumericInput(session, "directN_paired", value=20L)
         updateSelectInput(session, "parameterType", selected="waavp")
