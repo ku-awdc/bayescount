@@ -7,25 +7,17 @@ This online tool allows you to determine the minimum viable sample size for a FE
 
 You can select the relevant parameters for your analysis using the "Parameters" tab.  If you are designing a FECRT study according to the guidelines given in the 2023 WAAVP guideline for diagnosing anthelmintic resistance using the faecal egg count reduction test in ruminants, horses and swine (Kaplan et al, 2023) then you only need to select the following options:
 
-- Species and anthelmintic:  the host/parasite species and anthelmintic that you have used for your study. Note that this only covers the situations covered by Kaplan et al. (2023) - a more flexible option for specifying custom efficacy targets will be added soon.
-- Study design:  either paired (the same animals are used before and after treatment) or unpaired (separate control and treatment animals are used).
-- Expected EPG:  the expected (arithmetic) mean EPG in untreated animals (i.e. either pre-treatment or control animals).
-- Multiplication factor:  the counting sensitivity of the laboratory method used (e.g. 50 for McMaster). This must be a number greater than zero, and will be used to divide the specified EPG before analysis. Multiplication factor may differ between pre- and post-treatment (or treatment and control).
-- Target efficacy:  the expected arithmetic mean efficacy for the anthelmintic used.
-- Lower efficacy target:  the desired detection limit for resistance, i.e. the highest true mean efficacy that the study is designed to detect as resistant rather than inconclusive. This controls the size of the grey zone.
+- Host/parasite species  the host/parasite species that you have used for your study. Note that this only covers the situations covered by Kaplan et al. (2023) - a more flexible option for specifying custom efficacy targets will be added soon.
+- Target efficacy:  the expected arithmetic mean efficacy for the anthelmintic used (in %).
+- Non-inferiority margin:  the desired width of the grey zone (in % points) - changing this updates the lower efficacy target shown, for reference.
+- Expected pre-treatment EPG:  the expected (arithmetic) mean EPG in untreated animals (i.e. either pre-treatment or control animals).
+- Multiplication factor:  the counting sensitivity of the laboratory method used (e.g. 50 for McMaster). This must be a number greater than zero, and will be used to divide the specified EPG before analysis.
 - Maximum sample size:  the largest sample size to consider for the calculation (this should be in excess of the largest feasible sample size in practice).
-- Country/region:  an optional text entry giving the country/region where the animals are kept, which will be included in the report if specified.
-- Study identifier:  an optional text entry giving the study ID for reference purposes, which will be included in the report if specified.
 
 
-### Step 2:  Run Calculation
+### Step 2:  Run Calculation and View Results
 
-Once you have provided valid parameters, you can run the sample size calculation using the "Calculation" tab.  After a short delay, some feedback text will be shown to indicate either that a suitable sample size was determined, or that the maximum sample size specified was too small.  If a suitable sample size was not found, then you should go back and change parameters and then re-run the calculation.
-
-
-### Step 3:  Results
-
-Once the calculation has been run succesfully, results will be available via the "Results" tab.  The minimum sample size determined to achieve a statistical power of at least 80% for each test (resistance and susceptibility) is shown along with a graphical illustration of the estimated statistical power as a function of sample size.
+Once you have provided valid parameters, you can run the sample size calculation using the "Calculation" tab.  After a short delay, some feedback text will be shown to indicate either that a suitable sample size was determined, or that the maximum sample size specified was too small.  If a suitable sample size was not found, then you should go back and change parameters and then re-run the calculation.  Otherwise, the minimum sample size determined to achieve a statistical power of at least 80% for each test (resistance and susceptibility) will be shown along with a graphical illustration of the estimated statistical power as a function of sample size.
 
 
 ### About

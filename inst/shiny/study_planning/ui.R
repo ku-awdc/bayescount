@@ -16,8 +16,73 @@ fluidPage(
 		## PARAMETERS
 		tabPanel("Parameters",
 
-			h5("This tool is currently down for maintenance - please check back on 2023-08-21")
+			fluidRow(
+				column(colwidth,
+					selectInput("species",
+						"Select host/parasite species:",
+						choices = species_choices,
+						selected = character(0),
+						selectize = FALSE
+					)
+				),
+				column(colwidth,
+					numericInput("targetEfficacy",
+						"Select target efficacy (%):",
+						value = 99,
+						min = -100,
+						max = 100,
+						step = NA
+					)
+				)
+			),
 
+			fluidRow(
+				column(colwidth,
+					numericInput("delta",
+						"Select non-inferiority margin (%):",
+						value = 4,
+						min = 1,
+						max = 100,
+						step = NA
+					)
+				),
+				column(colwidth,
+					htmlOutput("lowerThreshold")
+				)
+			),
+
+			fluidRow(
+				column(colwidth,
+					numericInput("meanEPG",
+						"Select expected pre-treatment mean EPG:",
+						value = 1000,
+						min = 0,
+						max = NA,
+						step = NA
+					)
+				),
+				column(colwidth,
+					numericInput("multfact",
+						"Select multiplication factor:",
+						value = 50,
+						min = 0,
+						max = NA,
+						step = NA
+					)
+				),
+
+				fluidRow(
+					column(colwidth*2,
+						numericInput("maxN",
+							"Select maximum sample size:",
+							value = 100,
+							min = 10,
+							max = NA,
+							step = NA
+						)
+					)
+				)
+			)
 		),
 		## /PARAMETERS
 
@@ -25,15 +90,36 @@ fluidPage(
 		## CALCULATION
 		tabPanel("Calculation",
 
-		h5("This tool is currently down for maintenance - please check back on 2023-08-21")
+			fluidRow(
+				column(colwidth*2,
+					actionButton("calculate",
+						"Click to Calculate",
+						icon = NULL
+					)
+				)
+			),
 
-		),
-		## /CALCULATION
+			conditionalPanel("output.status == 0",
+				fluidRow(
+					column(colwidth*2,
+						htmlOutput("parameter_feedback", width="100%")
+					)
+				)
+			),
 
+			conditionalPanel("output.status == 1",
+				fluidRow(
+					column(colwidth*2,
+						htmlOutput("results_text", width="100%")
+					)
+				),
+				fluidRow(
+					column(colwidth*2,
+						plotOutput("results_plot", width="100%")
+					)
+				)
+			),
 
-		## RESULTS
-		tabPanel("Results",
-		h5("This tool is currently down for maintenance - please check back on 2023-08-21")
 		)
 	),
 

@@ -7,6 +7,9 @@ library("shiny")
 library("shinythemes")
 library("rhandsontable")
 library("stringr")
+library("ggplot2")
+library("dplyr")
+theme_set(theme_light())
 # TODO: handle this more nicely
 
 # Load the packages:
@@ -26,13 +29,13 @@ headscript <- "Hello"
 footeraddtext <- "Footer"
 
 library("markdown")
-colwidth <- 4L
+colwidth <- 6L
 
-waavp_choices <- list(
+species_choices <- list(
 	`*SELECT*` = "INVALID",
-	Ruminants = list(`Cattle - Nematodes - All` = "cattle", `Sheep - Nematodes - All` = "sheep", `Goats - Nematodes - All` = "goats"),
-	Equine = list(`Cyathostomins - Macroclyclic Lactones` = "cyath_ml", `Cyathostomins - Benzimidazoles` = "cyath_bz", `Cyathostomins - Pyrantel` = "cyath_pyr", `Foals - Parascaris - All` = "foals"),
-	`Swine` = list(`Oesophagostomum - Benzimidazoles` = "pig_bz", `Oesophagostomum - Ivermectin` = "pig_ivm")
+	Ruminants = list(`Cattle - Nematodes` = "cattle", `Sheep - Nematodes` = "sheep", `Goats - Nematodes` = "goats"),
+	Equine = list(`Adults - Cyathostomins` = "cyath", `Foals - Parascaris` = "foals"),
+	`Swine` = list(`Oesophagostomum` = "pig")
 )
 
 host_choices <- list(
