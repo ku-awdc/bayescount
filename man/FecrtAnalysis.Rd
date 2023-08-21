@@ -17,11 +17,16 @@ example_instance
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-FecrtAnalysis-new}{\code{FecrtAnalysis$new()}}
+\item \href{#method-FecrtAnalysis-reset}{\code{FecrtAnalysis$reset()}}
 \item \href{#method-FecrtAnalysis-add_data_files}{\code{FecrtAnalysis$add_data_files()}}
 \item \href{#method-FecrtAnalysis-add_data_excel}{\code{FecrtAnalysis$add_data_excel()}}
 \item \href{#method-FecrtAnalysis-add_data_csv}{\code{FecrtAnalysis$add_data_csv()}}
 \item \href{#method-FecrtAnalysis-import_data}{\code{FecrtAnalysis$import_data()}}
 \item \href{#method-FecrtAnalysis-get_data}{\code{FecrtAnalysis$get_data()}}
+\item \href{#method-FecrtAnalysis-set_parameters_guidelines}{\code{FecrtAnalysis$set_parameters_guidelines()}}
+\item \href{#method-FecrtAnalysis-set_parameters}{\code{FecrtAnalysis$set_parameters()}}
+\item \href{#method-FecrtAnalysis-run_analysis}{\code{FecrtAnalysis$run_analysis()}}
+\item \href{#method-FecrtAnalysis-run_analysis_shiny}{\code{FecrtAnalysis$run_analysis_shiny()}}
 \item \href{#method-FecrtAnalysis-clone}{\code{FecrtAnalysis$clone()}}
 }
 }
@@ -31,6 +36,15 @@ example_instance
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$new(shiny = FALSE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-FecrtAnalysis-reset"></a>}}
+\if{latex}{\out{\hypertarget{method-FecrtAnalysis-reset}{}}}
+\subsection{Method \code{reset()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$reset()}\if{html}{\out{</div>}}
 }
 
 }
@@ -76,6 +90,49 @@ example_instance
 \subsection{Method \code{get_data()}}{
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$get_data()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-FecrtAnalysis-set_parameters_guidelines"></a>}}
+\if{latex}{\out{\hypertarget{method-FecrtAnalysis-set_parameters_guidelines}{}}}
+\subsection{Method \code{set_parameters_guidelines()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$set_parameters_guidelines(
+  guideline,
+  version,
+  mf_1,
+  mf_2 = mf_1,
+  region = NA_character_,
+  identifier = NA_character_
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-FecrtAnalysis-set_parameters"></a>}}
+\if{latex}{\out{\hypertarget{method-FecrtAnalysis-set_parameters}{}}}
+\subsection{Method \code{set_parameters()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$set_parameters()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-FecrtAnalysis-run_analysis"></a>}}
+\if{latex}{\out{\hypertarget{method-FecrtAnalysis-run_analysis}{}}}
+\subsection{Method \code{run_analysis()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$run_analysis()}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-FecrtAnalysis-run_analysis_shiny"></a>}}
+\if{latex}{\out{\hypertarget{method-FecrtAnalysis-run_analysis_shiny}{}}}
+\subsection{Method \code{run_analysis_shiny()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$run_analysis_shiny()}\if{html}{\out{</div>}}
 }
 
 }

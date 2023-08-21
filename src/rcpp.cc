@@ -147,6 +147,9 @@ Rcpp::NumericVector estimate_k_ml(const Rcpp::IntegerVector data_1, const double
 			Rcpp::warning("correlation >= 1.0");
 			correlation = 0.99;
 		}
+		if(correlation > 0.9){
+			correlation = 0.9;
+		}
 
 		// Adjust k only if positive correlation:
 		if(correlation > 0.0){
@@ -240,7 +243,7 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 {
 	using namespace Rcpp;
 
-	const int nrows = paired ? 6L : 5L;
+	const int nrows = paired ? 7L : 6L;
 	Rcpp::DoubleVector td( nrows, NA_REAL );
 	Rcpp::StringVector ts( nrows );
 	Rcpp::StringVector output_Method = clone(ts);
@@ -284,6 +287,10 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 			cov += (double(data_1[i]) - mean_1) * (double(data_2[i]) - mean_2);
 		}
 	    cov = cov / double(N_1 - 1L);
+		if(cov > 0.9)
+			{
+				cov = 0.9;
+			}
 	}
 
 	Rcpp::NumericVector ks;
@@ -311,6 +318,11 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 
 	output_Method[row] = "BNB";
 	bnb_pval(sum_1, N_1, ks[0L], mean_1, var_1, sum_2, N_2, ks[1L], mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
+	output_Classification[row] = get_type_pv(1.0-obsred, output_pA[row], output_pI[row], tail, H0_A, H0_I);
+	row++;
+
+	output_Method[row] = "BNB_FixK2";
+	bnb_pval(sum_1, N_1, ks[0L], mean_1, var_1, sum_2, N_2, ks[0L], mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
 	output_Classification[row] = get_type_pv(1.0-obsred, output_pA[row], output_pI[row], tail, H0_A, H0_I);
 	row++;
 

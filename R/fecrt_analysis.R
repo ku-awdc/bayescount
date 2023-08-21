@@ -7,7 +7,8 @@
 #' @importFrom tools file_ext
 #' @importFrom readxl read_excel excel_sheets
 #' @importFrom readr read_csv read_csv2
-#' @importFrom stringr str_c
+#' @importFrom stringr str_c str_replace_all
+#' @importFrom dplyr filter pull bind_rows mutate case_when
 #'
 #' @examples
 #' example_instance <- FecrtAnalysis$new(shiny = TRUE)
@@ -247,23 +248,10 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 		},
 
 		set_parameters_guidelines = function(guideline, version, mf_1, mf_2=mf_1, region=NA_character_, identifier=NA_character_){
-			private$parameters <- list(guideline=guideline, version=version, mf_1=mf_1, mf_2=mf_2, region=region, identifier=identifier)
-		},
 
-		set_parameters = function(){
-			## TODO: custom target efficacies etc
-		},
+			stopifnot(version%in%c("clinical","research"))
 
-		run_analysis = function(){
-			stopifnot(!identical(private$data, list()), !identical(private$parameters, list()))
-
-			stopifnot(private$current_type%in%c("paired","unpaired"))
-			paired <- private$current_type=="paired"
-
-			stopifnot(private$parmeters$version%in%c("clinical","research"))
-			version <- private$parameters$version
-
-			TE <- switch(private$parameters$guideline,
+			TE <- switch(guideline,
 				"cattle" = 0.99,
 				"sheep" = 0.99,
 				"goats" = 0.99,
@@ -277,7 +265,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 			)
 
 			if(version=="research"){
-				TL <- switch(private$parameters$guideline,
+				TL <- switch(guideline,
 					"cattle" = 0.95,
 					"sheep" = 0.95,
 					"goats" = 0.95,
@@ -290,7 +278,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 					NA_real_
 				)
 			}else{
-				TL <- switch(private$parameters$guideline,
+				TL <- switch(guideline,
 					"cattle" = 0.90,
 					"sheep" = 0.90,
 					"goats" = 0.90,
@@ -305,7 +293,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 			}
 			stopifnot(!is.na(TE), !is.na(TL))
 
-			k1 <- switch(private$parameters$guideline,
+			k1 <- switch(guideline,
 				"cattle" = 1.1,
 				"sheep" = 1.4,
 				"goats" = 3.8,
@@ -317,7 +305,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 				"pig_ivm" = 0.8,
 				NA_real_
 			)
-			k2 <- switch(private$parameters$guideline,
+			k2 <- switch(guideline,
 				"cattle" = 0.4,
 				"sheep" = 0.8,
 				"goats" = 2.4,
@@ -329,7 +317,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 				"pig_ivm" = 1.2,
 				NA_real_
 			)
-			kc <- switch(private$parameters$guideline,
+			kc <- switch(guideline,
 				"cattle" = 0.1,
 				"sheep" = 0.5,
 				"goats" = 0.5,
@@ -341,6 +329,32 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 				"pig_ivm" = 0.4,
 				NA_real_
 			)
+			stopifnot(!is.na(k1), !is.na(k2), !is.na(kc))
+
+			private$parameters <- list(guideline=guideline, version=version, mf_1=mf_1, mf_2=mf_2, region=region, identifier=identifier, TE=TE, TL=TL, ks_exp=c(k1,k2,kc))
+		},
+
+		set_parameters = function(){
+			## TODO: custom target efficacies etc
+		},
+
+		run_analysis = function(){
+			stopifnot(self$n_data > 0)
+			stopifnot(!identical(private$data, list()), !identical(private$parameters, list()))
+
+			stopifnot(private$current_type%in%c("paired","unpaired"))
+			paired <- private$current_type=="paired"
+
+			stopifnot(private$parmeters$version%in%c("clinical","research"))
+			version <- private$parameters$version
+
+			TE <- private$parameters$TE
+			TL <- private$parameters$TL
+			stopifnot(!is.na(TE), !is.na(TL))
+
+			k1 <- private$parameters$ks_exp[1]
+			k2 <- private$parameters$ks_exp[2]
+			kc <- private$parameters$ks_exp[3]
 			stopifnot(!is.na(k1), !is.na(k2), !is.na(kc))
 			if(paired){
 				k1 <- k1 / (1-kc)
@@ -354,48 +368,114 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 			TE_r <- 1- ((1-TE)*mf_r)
 			TL_r <- 1- ((1-TL)*mf_r)
 
-			for(i in self$n_data){
-				if(paired){
-					d1 <- private$data[[i]]$PreTreatment
-					d2 <- private$data[[i]]$PostTreatment
-				}else{
-					d1 <- private$data[[i]]$PreTreatment
-					d2 <- private$data[[i]]$PostTreatment
+			seq_len(self$n_data) |>
+				lapply(function(i){
+
+					if(paired){
+						d1t <- private$data[[i]]$PreTreatment
+						d2t <- private$data[[i]]$PostTreatment
+						d1 <- d1t[!is.na(d1t) & !is.na(d2t)]
+						d2 <- d2t[!is.na(d1t) & !is.na(d2t)]
+					}else{
+						d1t <- private$data[[i]]$PreTreatment
+						d2t <- private$data[[i]]$PostTreatment
+						## TODO: FIX BNB for unequal N!
+						#d1 <- d1[!is.na(d1)]
+						#d2 <- d2[!is.na(d2)]
+						d1 <- d1t[!is.na(d1t) & !is.na(d2t)]
+						d2 <- d2t[!is.na(d1t) & !is.na(d2t)]
+					}
+
+					## Results for Gamma and WAAVP ignoring mf:
+					results_nonpar <- efficacy_analysis(d1, d2, paired=paired, T_I=TE, T_A=TL, alpha=0.05)
+
+					## Results for BNB and BNB_KnownKs:
+					results_bnbs <- efficacy_analysis(d1/mf_1, d2/mf_2, paired=paired, T_I=TE_r, T_A=TL_r, alpha=0.05, known_ks = c(k1,k2))
+
+					## If non-integer counts:
+					stopifnot(all(c("pI","pA") %in% names(results_bnbs)))
+					if(any((d1/mf_1)%%1 > 0) || any((d2/mf_2)%%1 > 0)){
+						results_bnbs$Classification <- "Unavailable (non-integer counts detected)"
+						results_bnbs$pI <- NA_real_
+						results_bnbs$pA <- NA_real_
+					}
+
+					results <- bind_rows(
+						results_nonpar |> filter(Method %in% c("Gamma","WAAVP")),
+						results_bnbs |> filter(Method %in% c("BNB","BNB_KnownKs","BNB_FixK2"))
+					)
+					results
+
+
+					## If N<5 (MAYBE or <3 non-zero pre-tx counts) then prefer BNB_Knownks
+					## If N>=5 and <3 non-zero counts post-tx then prefer BNB_FixK2
+					## If N>=5 and 3 or more non-zero counts (pre- and post-) then prefer Gamma
+					## If any count %% 1 != 0 then don't show BNB or BNBKnownKs
+					## Show WAABP as well
+					headline <- as.character(if(length(d1)<5L || length(d2) < 5L){
+						results |> filter(Method=="BNB_KnownKs") |> pull(Classification)
+# TODO: how well do Gamma/WAAVP do with few non-zero pre tx?
+#					}else if(sum(d1>0)<3L){
+#						results |> filter(Method=="BNB_KnownKs") |> pull(Classification)
+					}else if(sum(d2>0)<3L){
+						results |> filter(Method=="BNB_FixK2") |> pull(Classification)
+					}else{
+						results |> filter(Method=="Gamma") |> pull(Classification)
+					})
+
+					## NB: elements 4 and 5 are the real ks, 1 and 2 are adjusted!
+					digs <- 2
+					estks <- estimate_k(d1/mf_1, d2/mf_2, paired=paired)[c(4,5,3)] |> round(digits=digs)
+					sumstats <- list(n1 = length(d1), n2 = length(d2), m1 = mean(d1) |> round(digits=digs), v1 = var(d1) |> round(digits=digs), m2 = mean(d2) |> round(digits=digs), v2 = var(d2) |> round(digits=digs), ks = estks |> round(digits=digs))
+					if(length(d1)==1){
+						sumstats$v1 <- "(undefined)"
+						sumstats$ks[c(1,3)] <- "(undefined)"
+					}
+					if(length(d2)==1){
+						sumstats$v2 <- "(undefined)"
+						sumstats$ks[c(2,3)] <- "(undefined)"
+					}
+					if(is.na(sumstats$ks[1])) sumstats$ks[1] <- "(uncalculable)"
+					if(is.na(sumstats$ks[2])) sumstats$ks[2] <- "(uncalculable)"
+					if(is.na(sumstats$ks[3])) sumstats$ks[3] <- "(uncalculable)"
+
+					list(name = private$data[[i]]$name, headline = headline, all = results, sumstats = sumstats)
+				})
+		},
+
+		run_analysis_shiny = function(){
+			results <- self$run_analysis()
+
+			TE <- private$parameters$TE
+			TL <- private$parameters$TL
+			stopifnot(!is.na(TE), !is.na(TL))
+
+			stopifnot(length(results)==self$n_data)
+			if(length(results)==1L){
+				headline <- str_c("Efficacy classification:  ", results[[1]]$headline, "<br>[Based on an expected efficacy of ", TE*100, "% and a lower efficacy threshold of ", TL*100, "%]")
+				if(results[[1]]$sumstats$n1 < 5 || results[[1]]$sumstats$n1 < 5){
+					headline <- str_c(headline, "<br>WARNING: your data has fewer than five observations, so the classification above should be interpreted with extreme care!")
 				}
-
-				## Results for Gamma and WAAVP ignoring mf:
-				d2 <- rnbinom(20,1,mu=1)*50
-				results_nonpar <- efficacy_analysis(d1, d2, paired=paired, T_I=TE, T_A=TL, alpha=0.05)
-
-				## Results for BNB and BNB_KnownKs:
-				results_bnbs <- efficacy_analysis(d1/mf_1, d2/mf_2, paired=paired, T_I=TE_r, T_A=TL_r, alpha=0.05, known_ks = c(k1,k2))
-
-				results <- bind_rows(
-					results_nonpar |> filter(Method %in% c("Gamma","WAAVP")),
-					results_bnbs |> filter(Method %in% c("BNB","BNB_KnownKs"))
-				)
-				results
-
-				## NB: elements 4 and 5 are the real ks, 1 and 2 are adjusted!
-				estks <- estimate_k(d1/mf_1, d2/mf_2, paired=paired)
-
-				## If N<5 then prefer BNB_Knownks
-				## If N>=5 and 3 or more non-zero counts (pre- and post-) then prefer Gamma
-				## If N>=5 and <3 non-zero counts then prefer BNB
-				## If any count %% 1 != 0 then don't show BNB or BNBKnownKs
-				## Show WAABP as well
-
-
-				## Code for other one:
-				res <- fecrt_sample_size(EPGrange=50*20, EDT=50, mulength=1, margin=0.04, iters=10000L)
-				# EPGrange=epgrange, mulength=length(epgrange), EDT=1, target=using$Target[1]/100, margin=unique(using$Delta/100), k1=using$k1[1], k2=using$k2[1], cor=using$cor[1], iters=iters
-				ggplot(res$smat, aes(x=N, y=power, col=Hypothesis)) +
-					geom_line() +
-					geom_point() +
-					scale_x_continuous(trans="log10")
-
+			}else{
+				headline <- c("Efficacy classifications for each dataset are as follows:",
+					lapply(results, function(x){
+						msg <- str_c(x$name, ":  ", x$headline)
+						if(x$sumstats$n1 < 5 || x$sumstats$n1 < 5){
+							msg <- str_c(msg, "<br>   ->WARNING: your data has fewer than five observations, so the classification above should be interpreted with extreme care!")
+						}
+						msg
+					}),
+					str_c("[Based on an expected efficacy of ", TE*100, "% and a lower efficacy threshold of ", TL*100, "%]")
+				) |> str_c(collapse="<br>")
 			}
 
+			markdown <- fecrt_markdown(
+				list(n=self$n_data, headline=headline, full=results),
+				private$parameters,
+				private$current_type
+			)
+
+			return(list(headline=headline, markdown=markdown))
 		}
 
 	),
@@ -417,7 +497,17 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 if(FALSE){
 	test <- FecrtAnalysis$new(shiny = TRUE)
 	test$add_data_files("~/Downloads/file3.xlsx", "file3.xlsx")
-	test$n_data
+	test$import_data(data.frame(PreTreatment=1, PostTreatment=0), "test")
+	test$set_parameters_guidelines("cattle","clinical",50)
+	shiny <- test$run_analysis_shiny()
+	shiny$headline
+	cat(shiny$markdown)
+
+	cat(shiny$markdown, file="test.md")
+	rmarkdown::render("test.md", output_format=rmarkdown::pdf_document())
+	rmarkdown::render("test.md", output_format=rmarkdown::word_document())
+
+
 	test$import_data(data.frame(PreTreatment=1:10, PostTreatment=1:10), "test")
 	test$import_data(data.frame(PreTreatment=1:10, PostTreatment=1:10), "test2")
 	test$import_data(data.frame(Control=1:10, Treatment=1:10), "test3")

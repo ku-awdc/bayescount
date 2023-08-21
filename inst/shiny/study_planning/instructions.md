@@ -36,4 +36,4 @@ For more information on the WAAVP guidelines see [Kaplan et al. (2023)](https://
 
 ### Version
 
-This software is part of the [open-source bayescount package](https://github.com/ku-awdc/bayescount), version 1.1.0-1 (2023-08-20).
+This software is part of the [open-source bayescount package](https://github.com/ku-awdc/bayescount), version 1.1.0 (2023-08-21).

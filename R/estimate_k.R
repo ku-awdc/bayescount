@@ -14,7 +14,11 @@
 #' @export
 estimate_k <- function(data_1, data_2, paired=TRUE, k_ratio=1, min=0.001, max=20, tol=0.01){
 
-	covest <- cov(data_1, data_2, use='pairwise.complete')
+	if(paired){
+		covest <- cov(data_1, data_2, use='pairwise.complete')
+	}else{
+		covest <- 0.0
+	}
 	data_1 <- as.integer(na.omit(data_1))
 	data_2 <- as.integer(na.omit(data_2))
 

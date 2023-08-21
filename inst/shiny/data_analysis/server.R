@@ -1,10 +1,10 @@
 tempdir <- tempfile(pattern = "fecrt_analysis", tmpdir = tempdir(check=TRUE))
 dir.create(tempdir)
-on.exit(unlink(tempdir, recursive=TRUE))
-
-fecrt_analysis <- FecrtAnalysis$new(shiny = TRUE)
+setwd(tempdir)
 
 function(input, output, session) {
+
+  fecrt_analysis <- FecrtAnalysis$new(shiny = TRUE)
 
   rv <- reactiveValues(
     data_paired = data.frame(PreTreatment=integer(0),PostTreatment=integer(0)),
@@ -13,7 +13,8 @@ function(input, output, session) {
     data_demo = data.frame(),
     status = 0L,
     status_feedback = status_feedback[1],
-    result_summary = ""
+    result_summary = "",
+    filename = ""
   )
   ## Note: statuses are:
   ## 0: nothing
@@ -41,8 +42,10 @@ function(input, output, session) {
       settings$entryType <- "demo"
       settings$design <- "paired"
       settings$directN_paired <- 20L
-      settings$directN_txt <- input$directN_txt
       settings$directN_ctl <- input$directN_ctl
+      settings$directN_txt <- input$directN_ctl
+      # Non-equal N currently disabled as broken for BNB:
+      # settings$directN_txt <- input$directN_txt
 
       rv$data_demo <- data.frame(
         PreTreatment = as.integer(rnbinom(20, 1, mu=20)*50),
@@ -50,10 +53,11 @@ function(input, output, session) {
       )
 
       waavp_choices_demo <- waavp_choices
+      waavp_choices_demo$`*SELECT*` <- NULL
       waavp_choices_demo$Swine <- NULL
       waavp_choices_demo$Equine <- waavp_choices_demo$Equine[1:3]
 
-      updateSelectInput(session, "parameterType", selected="waavp")
+      updateCheckboxInput(session, "parameterType", value="research")
       updateSelectInput(session, "waavpSetup", selected=sample(unlist(waavp_choices_demo),1))
       updateNumericInput(session, "mf_pre", value=50)
       updateCheckboxInput(session, "mfp_fixed", value=TRUE)
@@ -110,7 +114,9 @@ function(input, output, session) {
     settings$design <- input$design
     settings$directN_paired <- input$directN_paired
     settings$directN_ctl <- input$directN_ctl
-    settings$directN_txt <- input$directN_txt
+    settings$directN_txt <- input$directN_ctl
+    # Non-equal N currently disabled as broken for BNB:
+    #settings$directN_txt <- input$directN_txt
     settings$entryType <- input$entryType
 
     rv$data_paired <- data.frame(
@@ -121,7 +127,9 @@ function(input, output, session) {
       `Control` = repnull(input$directN_ctl)
     )
     rv$data_txt <- data.frame(
-      `Treatment` = repnull(input$directN_txt)
+      # Non-equal N currently disabled as broken for BNB:
+      #`Treatment` = repnull(input$directN_txt)
+      `Treatment` = repnull(input$directN_ctl)
     )
     rv$status <- 1L
   })
@@ -132,7 +140,8 @@ function(input, output, session) {
     input$data_paired
     input$data_demo
     input$data_ctl
-    input$directN_txt
+    # Non-equal N currently disabled as broken for BNB:
+    # input$directN_txt
 
     if(rv$status >= 1 && settings$entryType %in% c("direct","demo")){
       if(settings$design == "paired"){
@@ -207,7 +216,9 @@ function(input, output, session) {
 
   ## Settings that reset status to 0:
   observe({
-    if(changed(c("entryType","design","directN_paired","directN_ctl","directN_txt"),input,settings)){
+    # Non-equal N currently disabled as broken for BNB:
+    #if(changed(c("entryType","design","directN_paired","directN_ctl","directN_txt"),input,settings)){
+    if(changed(c("entryType","design","directN_paired","directN_ctl"),input,settings)){
       ## If moving away from demo then reset everything:
       if(settings$entryType=="demo"){
         print("HARD RESET")
@@ -220,6 +231,7 @@ function(input, output, session) {
         updateTextInput(session, "region", value="")
         updateTextInput(session, "identifier", value="")
         settings$entryType <- input$entryType
+        fecrt_analysis$reset()
       }
 
       rv$status <- 0L
@@ -288,23 +300,24 @@ function(input, output, session) {
   output$downloadReport <- downloadHandler(
     filename = function() {
       ext <- if(input$downloadType=="pdf"){
-        "pdf"
+        ".pdf"
       }else if(input$downloadType=="word"){
-        "docx"
+        ".docx"
       }else{
         stop("Unrecognised download type")
       }
-      paste(ifelse(identical(input$identifier,""), "report", input$identifier), ".", ext, sep = "")
+      str_c(rv$filename, ext)
     },
     content = function(file) {
       ext <- if(input$downloadType=="pdf"){
-        "pdf"
+        ".pdf"
       }else if(input$downloadType=="word"){
-        "docx"
+        ".docx"
       }else{
         stop("Unrecognised download type")
       }
-      success <- file.copy(file.path(tempdir, paste("report.",ext,sep="")),file)
+      fn <- str_c(rv$filename, ext)
+      success <- file.copy(file.path(tempdir, fn),file)
       if(!success) stop("Error copying report")
     }
   )
@@ -312,15 +325,74 @@ function(input, output, session) {
   observeEvent(input$calculate, {
     withProgress(message = "Calculating...", value= 0, {
 
-      ## Create R6 class object to check/store everything:
-
-      for(i in 1:10){
-        setProgress(i/10)
-        Sys.sleep(0.1)
+      ## If direct/demo then add data:
+      if(settings$entryType=="direct"){
+        if(settings$design=="paired"){
+          fecrt_analysis$import_data(hot_to_r(input$data_paired),"direct entry")
+        }else{
+          fecrt_analysis$import_data(
+            data.frame(Control=hot_to_r(input$data_ctl), Treatment=hot_to_r(input$data_txt)),
+            "direct entry"
+          )
+        }
+      }else if(settings$entryType=="demo"){
+        fecrt_analysis$import_data(hot_to_r(input$data_demo),"demo")
       }
+
+      ## Then add parameters:
+      if(input$design=="paired"){
+        mf1 <- input$mf_pre
+        if(input$mfp_fixed){
+          mf2 <- mf1
+        }else{
+          mf1 <- input$mf_post
+        }
+      }else if(input$design=="unpaired"){
+        mf1 <- input$mf_ctl
+        if(input$mfu_fixed){
+          mf2 <- mf1
+        }else{
+          mf1 <- input$mf_txt
+        }
+      }else{
+        stop("Unrecognised design option")
+      }
+
+      if(input$parameterType%in%c("clinical","research")){
+        fecrt_analysis$set_parameters_guidelines(
+          input$waavpSetup,
+          input$parameterType,
+          mf1,
+          mf2,
+          input$region,
+          input$identifier
+        )
+      }else{
+        validate("parameterType custom not implemented")
+      }
+
+      output <- fecrt_analysis$run_analysis_shiny()
+      setProgress(1/4)
+
+      fn <- str_c("fecrt_report_", format(Sys.time(), format="%Y%m%d%H%M%S"))
+      rv$filename <- fn
+
+      cat(output$markdown, file=str_c(fn, ".md"))
+      Sys.sleep(0.1)
+      setProgress(2/4)
+
+      ## Render PDF:
+      rmarkdown::render(str_c(fn, ".md"), output_format=rmarkdown::pdf_document())
+      Sys.sleep(0.1)
+      setProgress(3/4)
+
+      ## Render Word:
+      rmarkdown::render(str_c(fn, ".md"), output_format=rmarkdown::word_document())
+      Sys.sleep(0.1)
+      setProgress(4/4)
     })
 
-    rv$result_summary <- "Results will be displayed here...<br>Note: the report download links currently do not do anything!"
+    rv$result_summary <- output$headline
     rv$status <- 4
   })
 

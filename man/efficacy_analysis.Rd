@@ -11,13 +11,14 @@ efficacy_analysis(
   T_I = 0.99,
   T_A = 0.95,
   S = c(1, 1),
-  alpha = 0.025,
+  alpha = 0.05,
   bnb_priors = c(0, 0),
   use_delta = NA,
   beta_iters = 10^4,
   use_ml = TRUE,
   binomial_priors = c(1, 1),
-  binomial_cl_adj = 0.2
+  binomial_cl_adj = 0.2,
+  known_ks = c(1, 1)
 )
 }
 \arguments{

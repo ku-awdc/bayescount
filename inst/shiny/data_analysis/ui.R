@@ -79,18 +79,29 @@ fluidPage(
 			conditionalPanel(
 				"input.entryType == 'direct' && input.design == 'unpaired'",
 
+				# Non-equal N currently disabled as broken for BNB:
+				# fluidRow(
+				# 	column(colwidth,
+				# 		numericInput("directN_ctl",
+				# 			"Enter control animals:",
+				# 			value = 20,
+				# 			min = 1,
+				# 			step = 1
+				# 		)
+				# 	),
+				# 	column(colwidth,
+				# 		numericInput("directN_txt",
+				# 			"Enter treatment animals:",
+				# 			value = 20,
+				# 			min = 1,
+				# 			step = 1
+				# 		)
+				# 	)
+				# )
 				fluidRow(
-					column(colwidth,
+					column(colwidth*2,
 						numericInput("directN_ctl",
-							"Enter control animals:",
-							value = 20,
-							min = 1,
-							step = 1
-						)
-					),
-					column(colwidth,
-						numericInput("directN_txt",
-							"Enter treatment animals:",
+							"Enter number of animals:",
 							value = 20,
 							min = 1,
 							step = 1
