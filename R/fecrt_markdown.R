@@ -62,6 +62,17 @@ date: "', as.character(Sys.Date()), '"
 ')
 		}
 
+		stopifnot(results[[i]]$method %in% c("Gamma","BNB_KnownKs","BNB_FixK2"))
+		output <- str_c(output, '
+
+The statistical method automatically chosen for your dataset was the ', case_when(
+	results[[i]]$method == "BNB_FixK2" ~ "BNB method (version B)",
+	results[[i]]$method == "BNB_KnownKs" ~ "BNB method (version C)",
+	results[[i]]$method == "Gamma" ~ "Delta method"
+	), ': see further details of statistical methods below the summary statistics
+
+			')
+
 		output <- str_c(output, '
 
 ### Summary statistics
@@ -139,7 +150,7 @@ Classification:  ', allres |> filter(Method=="BNB_FixK2") |> pull(Classification
 Notes:
 
 - This method is parametric, and assumes that the data follow a negative binomial distribution:  the classification will be unavailable if the multiplication factor you entered does not match the data
-- The over-dispersion is estimated for the ', text1, ' data, but the over-dispersion in the ', text2, 'data is assumed to be proportional to that of the ', text1, 'data
+- The over-dispersion is estimated for the ', text1, ' data, but the over-dispersion in the ', text2, 'data is assumed to be proportional to that of the ', text1, 'data (the ratio used is based on published estimates of over-dispersion ratios in the host/parasite species you have selected)
 - This method may give misleading results with fewer than five observations due to unstable estimates of over-dispersion
 - This is the preferred method when the sample size is greater than or equal to 5, and where fewer than three ', text2, ' observations are non-zero
 

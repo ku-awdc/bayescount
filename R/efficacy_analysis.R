@@ -23,9 +23,9 @@
 #'
 #' @examples
 #' (data1 <- rnbinom(10, mu=20, size=1))
-#' (data2 <- rnbinom(10, mu=2, size=0.75))
+#' (data2 <- rnbinom(10, mu=2, size=0.75))[1:5]
 #' efficacy_analysis(data1, data2, paired=FALSE, T_I=0.95, T_A=0.9)
-efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,1), alpha=0.05, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, use_ml=TRUE, binomial_priors=c(1,1), binomial_cl_adj=0.2, known_ks=c(1.0, 1.0)) {
+efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,1), alpha=0.05, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, use_ml=TRUE, binomial_priors=c(1,1), binomial_cl_adj=0.2, known_ks=c(1.0, 1.0), k_ratio=1.0) {
 
 	# TODO: input checks
 
@@ -49,6 +49,10 @@ efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,
 		stop("Values of S other than 1 are not currently supported")
 	}
 
+	if(paired && length(data_1)!=length(data_2)){
+		stop("The number of observations in pre- and post-treatment data must match for paired data")
+	}
+
 	# Turn delta into 0 or 2:
 	use_delta <- as.integer(use_delta*2L)
 	if(is.na(use_delta)){
@@ -59,8 +63,9 @@ efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,
 	stopifnot(length(binomial_cl)==2 && all(!is.na(binomial_cl)) && all(binomial_cl > 0) && all(binomial_cl < 1) && binomial_cl[1] < binomial_cl[2])
 
 	stopifnot(length(known_ks)==2, all(!is.na(known_ks)), all(known_ks>0.0))
+	stopifnot(length(k_ratio)==1, all(!is.na(k_ratio)), all(k_ratio>0.0))
 
-	results <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors), as.double(known_ks))
+	results <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors), as.double(known_ks), as.double(k_ratio))
 
 	typgrp <- gsub("[[:alpha:]]","",results$Typology)
 	results$Classification <- sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Method_Failure")

@@ -239,7 +239,7 @@ Rcpp::String get_type_pv(const double eff, const double p1, const double p2, con
 }
 
 
-Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, bool useml, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors, Rcpp::NumericVector known_ks)
+Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVector data_2, bool paired, double mean_ratio, double H0_I, double H0_A, Rcpp::NumericVector conjugate_priors, int delta, int beta_iters, bool useml, int approx, double tail, Rcpp::NumericVector dobson_cl, Rcpp::NumericVector dobson_priors, Rcpp::NumericVector known_ks, double k_ratio)
 {
 	using namespace Rcpp;
 
@@ -258,7 +258,7 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 	double dobson_priors_db[2] = { dobson_priors[0], dobson_priors[1] };
 
 	const int N_1 = data_1.size();
-	const int N_2 = data_1.size();
+	const int N_2 = data_2.size();
 
 	long long sum_1 = 0L;
 	for(int i=0; i<N_1; ++i){
@@ -322,7 +322,7 @@ Rcpp::DataFrame efficacy_analysis(Rcpp::IntegerVector data_1, Rcpp::IntegerVecto
 	row++;
 
 	output_Method[row] = "BNB_FixK2";
-	bnb_pval(sum_1, N_1, ks[0L], mean_1, var_1, sum_2, N_2, ks[0L], mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
+	bnb_pval(sum_1, N_1, ks[0L], mean_1, var_1, sum_2, N_2, ks[0L]*k_ratio, mean_2, var_2, cov, mean_ratio, H0_A, H0_I, conjugate_priors_db, delta, beta_iters, approx, &output_pA[row], &output_pI[row]);
 	output_Classification[row] = get_type_pv(1.0-obsred, output_pA[row], output_pI[row], tail, H0_A, H0_I);
 	row++;
 

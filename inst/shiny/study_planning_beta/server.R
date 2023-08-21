@@ -43,7 +43,7 @@ function(input, output, session) {
 			"goats" = 2.4,
 			"cyath" = 0.5,
 			"foals" = 1.0,
-			"pig" = 1.2,
+			"pig" = 0.8, #1.2,
 			NA_real_
 		)
 		kc <- switch(guideline,

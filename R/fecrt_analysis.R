@@ -314,8 +314,8 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 				"cyath_bz" = 0.5,
 				"cyath_pyr" = 0.5,
 				"foals" = 1.0,
-				"pig_bz" = 1.2,
-				"pig_ivm" = 1.2,
+				"pig_bz" = 0.8, #1.2,
+				"pig_ivm" = 0.8, #1.2,
 				NA_real_
 			)
 			kc <- switch(guideline,
@@ -356,6 +356,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 			k1 <- private$parameters$ks_exp[1]
 			k2 <- private$parameters$ks_exp[2]
 			kc <- private$parameters$ks_exp[3]
+			kr <- k2/k1
 			stopifnot(!is.na(k1), !is.na(k2), !is.na(kc))
 			if(paired){
 				k1 <- k1 / (1-kc)
@@ -369,6 +370,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 			TE_r <- 1- ((1-TE)*mf_r)
 			TL_r <- 1- ((1-TL)*mf_r)
 
+			browser()
 			seq_len(self$n_data) |>
 				lapply(function(i){
 
@@ -378,20 +380,17 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 						d1 <- d1t[!is.na(d1t) & !is.na(d2t)]
 						d2 <- d2t[!is.na(d1t) & !is.na(d2t)]
 					}else{
-						d1t <- private$data[[i]]$PreTreatment
-						d2t <- private$data[[i]]$PostTreatment
-						## TODO: FIX BNB for unequal N!
-						#d1 <- d1[!is.na(d1)]
-						#d2 <- d2[!is.na(d2)]
-						d1 <- d1t[!is.na(d1t) & !is.na(d2t)]
-						d2 <- d2t[!is.na(d1t) & !is.na(d2t)]
+						d1 <- private$data[[i]]$Control
+						d2 <- private$data[[i]]$Treatment
+						d1 <- d1[!is.na(d1)]
+						d2 <- d2[!is.na(d2)]
 					}
 
 					## Results for Gamma and WAAVP ignoring mf:
 					results_nonpar <- efficacy_analysis(d1, d2, paired=paired, T_I=TE, T_A=TL, alpha=0.05)
 
 					## Results for BNB and BNB_KnownKs:
-					results_bnbs <- efficacy_analysis(d1/mf_1, d2/mf_2, paired=paired, T_I=TE_r, T_A=TL_r, alpha=0.05, known_ks = c(k1,k2))
+					results_bnbs <- efficacy_analysis(d1/mf_1, d2/mf_2, paired=paired, T_I=TE_r, T_A=TL_r, alpha=0.05, known_ks = c(k1,k2), k_ratio = kr)
 
 					## If non-integer counts:
 					stopifnot(all(c("pI","pA") %in% names(results_bnbs)))
@@ -413,16 +412,17 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 					## If N>=5 and 3 or more non-zero counts (pre- and post-) then prefer Gamma
 					## If any count %% 1 != 0 then don't show BNB or BNBKnownKs
 					## Show WAABP as well
-					headline <- as.character(if(length(d1)<5L || length(d2) < 5L){
-						results |> filter(Method=="BNB_KnownKs") |> pull(Classification)
+					if(length(d1)<5L || length(d2) < 5L){
+						method <- "BNB_KnownKs"
 # TODO: how well do Gamma/WAAVP do with few non-zero pre tx?
 #					}else if(sum(d1>0)<3L){
-#						results |> filter(Method=="BNB_KnownKs") |> pull(Classification)
+#						method <- "BNB_KnownKs"
 					}else if(sum(d2>0)<3L){
-						results |> filter(Method=="BNB_FixK2") |> pull(Classification)
+						method <- "BNB_FixK2"
 					}else{
-						results |> filter(Method=="Gamma") |> pull(Classification)
-					})
+						method <- "Gamma"
+					}
+					headline <- results |> filter(Method==method) |> pull(Classification)
 
 					## NB: elements 4 and 5 are the real ks, 1 and 2 are adjusted!
 					digs <- 2
@@ -440,7 +440,7 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 					if(is.na(sumstats$ks[2])) sumstats$ks[2] <- "(uncalculable)"
 					if(is.na(sumstats$ks[3])) sumstats$ks[3] <- "(uncalculable)"
 
-					list(name = private$data[[i]]$name, headline = headline, all = results, sumstats = sumstats)
+					list(name = private$data[[i]]$name, headline = headline, method = method, all = results, sumstats = sumstats)
 				})
 		},
 
@@ -497,9 +497,11 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 
 if(FALSE){
 	test <- FecrtAnalysis$new(shiny = TRUE)
-	test$add_data_files("~/Downloads/file3.xlsx", "file3.xlsx")
-	test$import_data(data.frame(PreTreatment=1, PostTreatment=0), "test")
-	test$set_parameters_guidelines("cattle","clinical",50)
+#	test$add_data_files("~/Downloads/file3.xlsx", "file3.xlsx")
+	test$import_data(data.frame(Group=c("Control","Control","Control","Treatment","Treatment"), EPG=1:5), "test")
+#	test$import_data(data.frame(Group=c("Control","Control","Treatment","Treatment"), EPG=1:4), "test")
+#	test$import_data(data.frame(Control=1:10, Treatment=1:10), "test")
+	test$set_parameters_guidelines("cattle","clinical",1)
 	shiny <- test$run_analysis_shiny()
 	shiny$headline
 	cat(shiny$markdown)
