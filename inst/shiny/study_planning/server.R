@@ -57,6 +57,9 @@ function(input, output, session) {
 		)
 		stopifnot(!is.na(k1), !is.na(k2), !is.na(kc))
 
+		rv$parameter_feedback <- "Calculation unavailable due to a software update - please try again in a few hours"
+		validate(rv$parameter_feedback)
+
 
 		withProgress(message = "Calculating...", value= 0, {
 
