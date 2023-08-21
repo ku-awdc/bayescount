@@ -9,6 +9,7 @@
 #' @importFrom readr read_csv read_csv2
 #' @importFrom stringr str_c str_replace_all
 #' @importFrom dplyr filter pull bind_rows mutate case_when
+#' @importFrom purrr map_df
 #'
 #' @examples
 #' example_instance <- FecrtAnalysis$new(shiny = TRUE)

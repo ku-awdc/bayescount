@@ -18,9 +18,6 @@ function(input, output, session) {
 
 	observeEvent(input$calculate, {
 
-		rv$parameter_feedback <- "Calculation unavailable due to a software update - please try again in a few hours"
-
-		if(FALSE){
 		## Validate inputs:
 		if(input$species=="INVALID"){
 			rv$parameter_feedback <- "Please select a host/parasite species and click Calculate again"
@@ -60,10 +57,6 @@ function(input, output, session) {
 		)
 		stopifnot(!is.na(k1), !is.na(k2), !is.na(kc))
 
-		rv$parameter_feedback <- "Calculation unavailable due to a software update - please try again in a few hours"
-		validate(rv$parameter_feedback)
-
-
 		withProgress(message = "Calculating...", value= 0, {
 
 			setProgress(1/4)
@@ -102,7 +95,6 @@ function(input, output, session) {
 		})
 
 		rv$status <- 1
-		}
 	})
 
 	fluidPage({

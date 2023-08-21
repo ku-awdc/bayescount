@@ -38,6 +38,7 @@ Imports:
 	tidyr,
 	readr,
 	stringr,
+	purrr,
 	readxl,
 	R6,
 	Rcpp (>= 1.0.0),

@@ -9,6 +9,7 @@ library("rhandsontable")
 library("stringr")
 library("ggplot2")
 library("dplyr")
+library("purrr")
 theme_set(theme_light())
 # TODO: handle this more nicely
 
