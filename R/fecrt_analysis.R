@@ -370,7 +370,6 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 			TE_r <- 1- ((1-TE)*mf_r)
 			TL_r <- 1- ((1-TL)*mf_r)
 
-			browser()
 			seq_len(self$n_data) |>
 				lapply(function(i){
 
@@ -498,8 +497,9 @@ FecrtAnalysis <- R6Class("FecrtAnalysis",
 if(FALSE){
 	test <- FecrtAnalysis$new(shiny = TRUE)
 #	test$add_data_files("~/Downloads/file3.xlsx", "file3.xlsx")
-	test$import_data(data.frame(Group=c("Control","Control","Control","Treatment","Treatment"), EPG=1:5), "test")
-#	test$import_data(data.frame(Group=c("Control","Control","Treatment","Treatment"), EPG=1:4), "test")
+	#test$import_data(data.frame(Group=c("Control","Control","Treatment"), EPG=c(1,2,0)), "test")
+	# test$import_data(data.frame(Group=c("Control","Control","Control","Treatment","Treatment"), EPG=1:5), "test")
+	#	test$import_data(data.frame(Group=c("Control","Control","Treatment","Treatment"), EPG=1:4), "test")
 #	test$import_data(data.frame(Control=1:10, Treatment=1:10), "test")
 	test$set_parameters_guidelines("cattle","clinical",1)
 	shiny <- test$run_analysis_shiny()

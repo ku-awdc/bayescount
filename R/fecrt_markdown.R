@@ -80,7 +80,7 @@ The statistical method automatically chosen for your dataset was the ', case_whe
 ', if(is_paired){
 		str_c('Number of animals: ', results[[i]]$sumstats$n1)
 	}else{
-		str_c('Number of ', text1, ' animals: ', results[[i]]$sumstats$n1, '
+		str_c('Number of ', text1, ' animals: ', results[[i]]$sumstats$n1, '\n
 Number of ', text2, ' animals: ', results[[i]]$sumstats$n2)
 	}, '\n
 Mean of ', text1, ' data:  ', results[[i]]$sumstats$m1, '\n
