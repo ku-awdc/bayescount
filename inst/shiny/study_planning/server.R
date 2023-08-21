@@ -18,9 +18,12 @@ function(input, output, session) {
 
 	observeEvent(input$calculate, {
 
+		rv$parameter_feedback <- "Calculation unavailable due to a software update - please try again in a few hours"
+
+		if(FALSE){
 		## Validate inputs:
 		if(input$species=="INVALID"){
-			rv$parameter_feedback <- "Please select a host/parasite species"
+			rv$parameter_feedback <- "Please select a host/parasite species and click Calculate again"
 			validate(rv$parameter_feedback)
 		}
 		if(input$multfact==0){
@@ -99,6 +102,7 @@ function(input, output, session) {
 		})
 
 		rv$status <- 1
+		}
 	})
 
 	fluidPage({
