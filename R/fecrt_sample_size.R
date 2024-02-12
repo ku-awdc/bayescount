@@ -12,7 +12,7 @@
 #' @return
 #'
 #' @export
-fecrt_sample_size <- function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = c(1, 2.5, 5, 10, 25, 50), target = 0.99, margin = c(0.04, 0.09), k1 = 1, k2 = 0.6, cor = 0.3, Nlength=50, mulength=20, EPGlength=100, iters=1000L){
+fecrt_sample_size <- function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = c(1, 2.5, 5, 10, 25, 50), target = 0.99, margin = c(0.04, 0.09), k1 = 1, k2 = 0.6, cor = 0.3, Nlength=50, mulength=20, EPGlength=100, iters=1000L, smooth_results=TRUE){
 
 	Ns <- unique(round(10^seq(log10(Nrange[1]), log10(Nrange[2]), length=Nlength)))
 
@@ -52,6 +52,8 @@ fecrt_sample_size <- function(Nrange = c(5, 100), EPGrange = c(50, 1000), EDT = 
 	cmat <- smat %>%
 		group_by(N, Margin, Mean) %>%
 		summarise(power = min(power))
+    
+  if(!smooth_results) return(list(smat=smat, cmat=cmat))
 
 	## Remove any interpolations outside the range of obs:
 	check <- smat %>%
