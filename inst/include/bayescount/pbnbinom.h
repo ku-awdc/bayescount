@@ -8,7 +8,8 @@ Original file is copyright of Bob Wheeler, licensed GPL>=2
 #ifndef BAYESCOUNT__PBNBINOM_H
 #define BAYESCOUNT__PBNBINOM_H
 
-#include <Rcpp.h>
+// Exclude this here as we sometimes want to use RcppArmadillo.h:
+// #include <Rcpp.h>
 
 
 namespace bayescount

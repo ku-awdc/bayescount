@@ -2,7 +2,8 @@
 #define BAYESCOUNT__BNB_PVAL_H
 
 #include <array>
-#include <Rcpp.h>
+// Exclude this here as we sometimes want to use RcppArmadillo.h:
+// #include <Rcpp.h>
 
 #include "pbnbinom.h"
 
