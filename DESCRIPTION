@@ -1,7 +1,7 @@
 Package: bayescount
 Title: Statistical Analyses and Sample Size Calculations for Over-dispersed Count Data
-Version: 1.1.1-1
-Date: 2023-08-21
+Version: 1.2.1-1
+Date: 2025-03-28
 Authors@R: 
     c(person(given = "Matthew",
            family = "Denwood",
@@ -55,6 +55,8 @@ LinkingTo:
 	Rcpp,
 	RcppDist,
 	RcppArmadillo
+SystemRequirements:
+  C++20
 VignetteBuilder: knitr
 URL: https://github.com/ku-awdc/bayescount
 Language: en-GB
