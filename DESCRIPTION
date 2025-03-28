@@ -10,7 +10,7 @@ Authors@R:
     person(given = "Bob",
            family = "Wheeler",
            role = c("cph"),
-           comment="Copyright holder of the code in /src/dists.*"),
+           comment="Copyright holder of the code in /src/dists.* and /inst/include/bayescount/pbnbinom.h"),
     person(given = "Richard",
            family = "Brent",
            role = c("cph"),
