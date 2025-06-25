@@ -405,6 +405,64 @@ namespace bayescount
 
   }
 
+  /*********************************************************************/
+  /*   Underlying C++ hypothesis test function for 100% obs. efficacy  */
+  /*********************************************************************/
+
+  inline double bnb_pval_100(double const sum1, double const N1, double const N2, double const K, double const mean_ratio, double const H0){
+
+    std::array<double, 2> const conjugate_priors { 0.0, 0.0 };
+  	// Calculate beta parameters:
+  	double const alpha1 = sum1 + conjugate_priors[1];
+  	double const beta1 = N1 * K + conjugate_priors[0];
+
+  	double const tmu = alpha1 / (alpha1 + beta1);
+  	double const tvar = (alpha1 * beta1) / (std::pow(alpha1 + beta1, 2) * (alpha1 + beta1 + 1.0));
+
+  	// effK takes account of the change in replicates and/or edt:
+  	double const effK = K * mean_ratio * N2;
+
+		double const meanchange = (1.0 - H0);
+
+		double newEprob = delta_mean(tmu, tvar, K, K, meanchange);
+		double newVprob = delta_var(alpha1, beta1, tmu, tvar, K, K, meanchange);
+
+		// If we get a negative or zero variance then fall back to not using the delta method:
+		if(newEprob <= 0 || newVprob <= 0){
+      int const beta_iters = 1000;
+			double rmean=0;
+			double rvar=0;
+			double deltaval=0;
+			for(int i=1; i<=beta_iters; i++){
+				deltaval = g_fun(R::rbeta(alpha1, beta1), K, K, meanchange) - rmean;
+				rmean += deltaval / static_cast<double>(i);
+				rvar += deltaval*deltaval;
+			}
+			newEprob = rmean;
+			newVprob = rvar / static_cast<double>(beta_iters-1);
+		}
+
+		double alpha2 = 0.0;
+		double beta2 = 0.0;
+		beta_params(newEprob, newVprob, alpha2, beta2);
+
+		// Note alpha and beta swapped as BNB is failures before successes and we want vice versa!
+		double const pv = pbnb_lower(0, effK, beta2, alpha2);
+		// pbnb_lower is inclusive probability
+    
+    if( !R_finite(pv) ){
+      std::string msg = std::format("Non-finite p-value with following parameters: sum1={0}, N1={1}, N2={2}, K={3}, mean_ratio={4}, H0={5}", sum1, N1, N2, K, mean_ratio, H0);
+      Rcpp::warning(msg);
+    }
+    if( pv < 0.0 || pv > 1.0){
+      std::string msg = std::format("Invalid p-value ({6} -> NA) with following parameters: sum1={0}, N1={1}, N2={2}, K={3}, mean_ratio={4}, H0={5}", sum1, N1, N2, K, mean_ratio, H0, pv);
+      Rcpp::warning(msg);
+      return NA_REAL;
+    }
+    
+    return pv;
+  }
+
 } // namespace bayescount
 
 #endif // BAYESCOUNT__BNB_PVAL_H

@@ -36,6 +36,9 @@ public:
 RCPP_EXPOSED_CLASS(estimator_pair_unfix)
 */
 
+#include "../inst/include/bayescount/bnb_pval.h"
+
+
 RCPP_MODULE(bayescount_module){
 
 	using namespace Rcpp;
@@ -44,6 +47,7 @@ RCPP_MODULE(bayescount_module){
   function("Rcpp_draw_count", &draw_count);
   function("Rcpp_estimate_fecrt", &estimate_fecrt);
   function("Rcpp_summarise_fecrt", &summarise_fecrt);
+  function("Rcpp_bnb_pval_100", &bayescount::bnb_pval_100);
 
     /*
 	class_<estimator_pair_unfix>("Rcpp_estimator_pair_unfix")
