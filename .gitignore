@@ -5,5 +5,3 @@ inst/doc
 *.so
 *.o
 .Rhistory
-config.log
-config.status
