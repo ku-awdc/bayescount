@@ -14,9 +14,6 @@ estimate_k(
   tol = 0.01
 )
 }
-\arguments{
-\item{cor}{}
-}
 \description{
 Title
 }

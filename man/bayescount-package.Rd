@@ -2,9 +2,9 @@
 % Please edit documentation in R/bayescount-package.R
 \docType{package}
 \name{bayescount-package}
-\alias{bayescount}
 \alias{bayescount-package}
 \alias{bayescountpackage}
+\alias{bayescount}
 \title{bayescount: Statistical Analyses and Sample Size Calculations for Over-dispersed Count Data}
 \description{
 A set of functions and interactive Shiny apps to allow analysis of over-dispersed count data such as that associated with egg reduction rate (ERR) and faecal egg count reduction test (FECRT) studies in parasitology. Functions and apps are also provided to assist in sample size calculations for future studies. A working installation of JAGS is required for MCMC-based methods (see \url{http://mcmc-jags.sourceforge.net}).
@@ -39,9 +39,14 @@ Useful links:
 \author{
 \strong{Maintainer}: Matthew Denwood \email{md@sund.ku.dk}
 
+Authors:
+\itemize{
+  \item Matthew Denwood \email{md@sund.ku.dk}
+}
+
 Other contributors:
 \itemize{
-  \item Bob Wheeler (Copyright holder of the code in /src/dists.*) [copyright holder]
+  \item Bob Wheeler (Copyright holder of the code in /src/dists.* and /inst/include/bayescount/pbnbinom.h) [copyright holder]
   \item Richard Brent (Original copyright holder of the code in /src/optimize.cc) [copyright holder]
 }
 

@@ -14,20 +14,28 @@ export(powersim_paired_LP)
 import(Rcpp)
 import(dplyr)
 importFrom(R6,R6Class)
-importFrom(dplyr,bind_rows)
-importFrom(dplyr,case_when)
-importFrom(dplyr,filter)
-importFrom(dplyr,mutate)
-importFrom(dplyr,pull)
+importFrom(dplyr,
+  bind_rows,
+  case_when,
+  filter,
+  mutate,
+  pull
+)
 importFrom(parallel,mclapply)
 importFrom(purrr,map_df)
-importFrom(readr,read_csv)
-importFrom(readr,read_csv2)
-importFrom(readxl,excel_sheets)
-importFrom(readxl,read_excel)
+importFrom(readr,
+  read_csv,
+  read_csv2
+)
+importFrom(readxl,
+  excel_sheets,
+  read_excel
+)
 importFrom(rlang,.data)
-importFrom(stringr,str_c)
-importFrom(stringr,str_replace_all)
+importFrom(stringr,
+  str_c,
+  str_replace_all
+)
 importFrom(tidyr,gather)
 importFrom(tools,file_ext)
 useDynLib(bayescount)

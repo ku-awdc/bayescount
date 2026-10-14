@@ -5,8 +5,6 @@
 \title{An example R6 class}
 \description{
 An example R6 class
-
-An example R6 class
 }
 \examples{
 example_instance <- FecrtAnalysis$new(shiny = TRUE)
@@ -15,142 +13,166 @@ example_instance
 }
 \section{Methods}{
 \subsection{Public methods}{
-\itemize{
-\item \href{#method-FecrtAnalysis-new}{\code{FecrtAnalysis$new()}}
-\item \href{#method-FecrtAnalysis-reset}{\code{FecrtAnalysis$reset()}}
-\item \href{#method-FecrtAnalysis-add_data_files}{\code{FecrtAnalysis$add_data_files()}}
-\item \href{#method-FecrtAnalysis-add_data_excel}{\code{FecrtAnalysis$add_data_excel()}}
-\item \href{#method-FecrtAnalysis-add_data_csv}{\code{FecrtAnalysis$add_data_csv()}}
-\item \href{#method-FecrtAnalysis-import_data}{\code{FecrtAnalysis$import_data()}}
-\item \href{#method-FecrtAnalysis-get_data}{\code{FecrtAnalysis$get_data()}}
-\item \href{#method-FecrtAnalysis-set_parameters_guidelines}{\code{FecrtAnalysis$set_parameters_guidelines()}}
-\item \href{#method-FecrtAnalysis-set_parameters}{\code{FecrtAnalysis$set_parameters()}}
-\item \href{#method-FecrtAnalysis-run_analysis}{\code{FecrtAnalysis$run_analysis()}}
-\item \href{#method-FecrtAnalysis-run_analysis_shiny}{\code{FecrtAnalysis$run_analysis_shiny()}}
-\item \href{#method-FecrtAnalysis-clone}{\code{FecrtAnalysis$clone()}}
-}
+  \itemize{
+    \item \href{#method-FecrtAnalysis-initialize}{\code{FecrtAnalysis$new()}}
+    \item \href{#method-FecrtAnalysis-reset}{\code{FecrtAnalysis$reset()}}
+    \item \href{#method-FecrtAnalysis-add_data_files}{\code{FecrtAnalysis$add_data_files()}}
+    \item \href{#method-FecrtAnalysis-add_data_excel}{\code{FecrtAnalysis$add_data_excel()}}
+    \item \href{#method-FecrtAnalysis-add_data_csv}{\code{FecrtAnalysis$add_data_csv()}}
+    \item \href{#method-FecrtAnalysis-import_data}{\code{FecrtAnalysis$import_data()}}
+    \item \href{#method-FecrtAnalysis-get_data}{\code{FecrtAnalysis$get_data()}}
+    \item \href{#method-FecrtAnalysis-set_parameters_guidelines}{\code{FecrtAnalysis$set_parameters_guidelines()}}
+    \item \href{#method-FecrtAnalysis-set_parameters}{\code{FecrtAnalysis$set_parameters()}}
+    \item \href{#method-FecrtAnalysis-run_analysis}{\code{FecrtAnalysis$run_analysis()}}
+    \item \href{#method-FecrtAnalysis-run_analysis_shiny}{\code{FecrtAnalysis$run_analysis_shiny()}}
+    \item \href{#method-FecrtAnalysis-clone}{\code{FecrtAnalysis$clone()}}
+  }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-FecrtAnalysis-new"></a>}}
-\if{latex}{\out{\hypertarget{method-FecrtAnalysis-new}{}}}
-\subsection{Method \code{new()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$new(shiny = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<a id="method-FecrtAnalysis-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-FecrtAnalysis-initialize}{}}}
+\subsection{\code{FecrtAnalysis$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$new(shiny = FALSE)}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-reset"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-reset}{}}}
-\subsection{Method \code{reset()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$reset()}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$reset()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$reset()}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-add_data_files"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-add_data_files}{}}}
-\subsection{Method \code{add_data_files()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$add_data_files(files, names = files)}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$add_data_files()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$add_data_files(files, names = files)}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-add_data_excel"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-add_data_excel}{}}}
-\subsection{Method \code{add_data_excel()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$add_data_excel(file, name = file)}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$add_data_excel()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$add_data_excel(file, name = file)}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-add_data_csv"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-add_data_csv}{}}}
-\subsection{Method \code{add_data_csv()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$add_data_csv(file, name = file)}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$add_data_csv()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$add_data_csv(file, name = file)}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-import_data"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-import_data}{}}}
-\subsection{Method \code{import_data()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$import_data(data, name)}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$import_data()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$import_data(data, name)}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-get_data"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-get_data}{}}}
-\subsection{Method \code{get_data()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$get_data()}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$get_data()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$get_data()}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-set_parameters_guidelines"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-set_parameters_guidelines}{}}}
-\subsection{Method \code{set_parameters_guidelines()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$set_parameters_guidelines(
+\subsection{\code{FecrtAnalysis$set_parameters_guidelines()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$set_parameters_guidelines(
   guideline,
   version,
   mf_1,
   mf_2 = mf_1,
   region = NA_character_,
   identifier = NA_character_
-)}\if{html}{\out{</div>}}
+)}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-set_parameters"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-set_parameters}{}}}
-\subsection{Method \code{set_parameters()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$set_parameters()}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$set_parameters()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$set_parameters()}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-run_analysis"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-run_analysis}{}}}
-\subsection{Method \code{run_analysis()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$run_analysis()}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$run_analysis()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$run_analysis()}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-run_analysis_shiny"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-run_analysis_shiny}{}}}
-\subsection{Method \code{run_analysis_shiny()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$run_analysis_shiny()}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$run_analysis_shiny()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$run_analysis_shiny()}
+    \if{html}{\out{</div>}}
+  }
 }
 
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-FecrtAnalysis-clone"></a>}}
 \if{latex}{\out{\hypertarget{method-FecrtAnalysis-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{FecrtAnalysis$clone(deep = FALSE)}\if{html}{\out{</div>}}
+\subsection{\code{FecrtAnalysis$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{FecrtAnalysis$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
-}
 }

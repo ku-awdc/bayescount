@@ -18,7 +18,8 @@ efficacy_analysis(
   use_ml = TRUE,
   binomial_priors = c(1, 1),
   binomial_cl_adj = 0.2,
-  known_ks = c(1, 1)
+  known_ks = c(1, 1),
+  k_ratio = 1
 )
 }
 \arguments{
@@ -56,7 +57,7 @@ This function analyses a given count reduction dataset (e.g. egg reduction rate 
 }
 \examples{
 (data1 <- rnbinom(10, mu=20, size=1))
-(data2 <- rnbinom(10, mu=2, size=0.75))
+(data2 <- rnbinom(10, mu=2, size=0.75))[1:5]
 efficacy_analysis(data1, data2, paired=FALSE, T_I=0.95, T_A=0.9)
 }
 \seealso{

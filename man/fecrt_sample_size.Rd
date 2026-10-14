@@ -16,11 +16,9 @@ fecrt_sample_size(
   Nlength = 50,
   mulength = 20,
   EPGlength = 100,
-  iters = 1000L
+  iters = 1000L,
+  smooth_results = TRUE
 )
-}
-\arguments{
-\item{cor}{}
 }
 \description{
 Title
