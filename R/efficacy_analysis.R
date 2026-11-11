@@ -23,7 +23,7 @@
 #'
 #' @examples
 #' (data1 <- rnbinom(10, mu=20, size=1))
-#' (data2 <- rnbinom(10, mu=2, size=0.75))[1:5]
+#' (data2 <- rnbinom(10, mu=2, size=0.75))
 #' efficacy_analysis(data1, data2, paired=FALSE, T_I=0.95, T_A=0.9)
 efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,1), alpha=0.05, bnb_priors=c(0,0), use_delta=NA, beta_iters=10^4, use_ml=TRUE, binomial_priors=c(1,1), binomial_cl_adj=0.2, known_ks=c(1.0, 1.0), k_ratio=1.0) {
 
@@ -66,6 +66,80 @@ efficacy_analysis <- function(data_1, data_2, paired, T_I=0.99, T_A=0.95, S=c(1,
 	stopifnot(length(k_ratio)==1, all(!is.na(k_ratio)), all(k_ratio>0.0))
 
 	results <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(T_I), as.double(T_A), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors), as.double(known_ks), as.double(k_ratio))
+
+	# CI for BNB method
+	if(nzchar(Sys.getenv("BAYESCOUNT_SECRET_CI"))){
+
+		obseff <- 1 - mean(data_2)/mean(data_1)
+		lengths <- 100L
+		row <- which(results$Method=="BNB")
+
+		## Pass 1:
+		rr <- data.frame(
+			ta = seq(0.0, obseff, length.out=lengths),
+			pa = NA_real_,
+			ti = seq(obseff, 1.0, length.out=lengths),
+			pi = NA_real_
+		)
+		for(i in seq_len(nrow(rr))){
+			suppressWarnings(tt <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(rr$ti[i]), as.double(rr$ta[i]), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors), as.double(known_ks), as.double(k_ratio)))
+			rr$pa[i] <- tt[row,"pA"]
+			rr$pi[i] <- tt[row,"pI"]
+		}
+		if(FALSE){
+			with(rr, {
+				plot(ti, pi, type="l", xlim=c(0,1), ylim=c(0,alpha*4))
+				lines(ta, pa)
+			})
+		}
+
+		# Pass 2:
+		ar <- range(rr$ta[rr$pa > alpha & rr$pa < alpha*4])
+		if(obseff<1){
+			ir <- range(rr$ti[rr$pi > alpha & rr$pi < alpha*4])
+		}else{
+			ir <- c(1,1)
+		}
+		rr <- data.frame(
+			ta = seq(max(0,ar[1]*0.9), min(1,ar[2]*1.1), length.out=lengths),
+			pa = NA_real_,
+			ti = seq(max(0,ir[1]*0.9), min(1,ir[2]*1.1), length.out=lengths),
+			pi = NA_real_
+		)
+		for(i in seq_len(nrow(rr))){
+			suppressWarnings(tt <- RCPP_efficacy_analysis(as.integer(data_1), as.integer(data_2), as.logical(paired), as.double(mean_ratio), as.double(rr$ti[i]), as.double(rr$ta[i]), as.double(bnb_priors), as.integer(use_delta), as.integer(beta_iters), as.logical(use_ml), 1L, as.double(alpha), as.double(binomial_cl), as.double(binomial_priors), as.double(known_ks), as.double(k_ratio)))
+			rr$pa[i] <- tt[row,"pA"]
+			rr$pi[i] <- tt[row,"pI"]
+		}
+		if(FALSE){
+			with(rr, {
+				plot(ti, pi, type="b", xlim=c(0,1), ylim=c(alpha*1.5,alpha*2.5))
+				lines(ta, pa, type="b")
+			})
+		}
+		if(obseff<1){
+			if(sum(rr$pi < alpha*1.5)<2 || sum(rr$pi > alpha*2.5)<2){
+				warning("Obtaining UCI for the BNB method failed", call.=FALSE)
+				uci <- NA_real_
+			}else{
+				uci <- with(rr[rr$pi<1,], {
+					approxfun(ti ~ pi)(alpha*2)
+				})
+			}
+		}else{
+			uci <- 1
+		}
+		if(sum(rr$pa < alpha*1.5)<2 || sum(rr$pa > alpha*2.5)<2){
+			warning("Obtaining LCI for the BNB method failed", call.=FALSE)
+			lci <- NA_real_
+		}else{
+			lci <- with(rr[rr$pa<1,], {
+				approxfun(ta ~ pa)(alpha*2)
+			})
+		}
+		results[row,"LCI"] <- lci
+		results[row,"UCI"] <- uci
+	}
 
 	typgrp <- gsub("[[:alpha:]]","",results$Typology)
 	results$Classification <- sapply(typgrp, switch, "1"="Reduced", "2"="Inconclusive", "3"="Borderline", "4"="Adequate", "Method_Failure")

@@ -57,7 +57,7 @@ This function analyses a given count reduction dataset (e.g. egg reduction rate 
 }
 \examples{
 (data1 <- rnbinom(10, mu=20, size=1))
-(data2 <- rnbinom(10, mu=2, size=0.75))[1:5]
+(data2 <- rnbinom(10, mu=2, size=0.75))
 efficacy_analysis(data1, data2, paired=FALSE, T_I=0.95, T_A=0.9)
 }
 \seealso{
