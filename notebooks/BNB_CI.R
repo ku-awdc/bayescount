@@ -1,7 +1,7 @@
 # Dependencies:
 install.packages(c("dplyr", "rlang", "tidyr", "readr", "stringr", "purrr", "readxl", "R6", "shiny", "shinythemes", "rhandsontable", "ggplot2", "rmarkdown", "Rcpp", "RcppDist", "RcppArmadillo"))
 
-# Development version:
+# Install development version (requires compilers, and you will get many compilation warnings - but it succeeds at least on macOS):
 remotes::install_github("ku-awdc/bayescount")
 stopifnot(packageVersion("bayescount")>="1.2.1-3")
 
